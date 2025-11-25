@@ -1,13 +1,30 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { coordinateSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // put application routes here
-  // prefix all routes with /api
+  app.post("/api/validate-coordinates", async (req, res) => {
+    try {
+      const result = coordinateSchema.safeParse(req.body);
+      
+      if (!result.success) {
+        return res.status(400).json({
+          error: "Invalid coordinates",
+          details: result.error.errors,
+        });
+      }
 
-  // use storage to perform CRUD operations on the storage interface
-  // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
+      return res.json({
+        valid: true,
+        coordinates: result.data,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        error: "Internal server error",
+      });
+    }
+  });
 
   const httpServer = createServer(app);
 

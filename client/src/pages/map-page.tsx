@@ -181,7 +181,22 @@ function CoordinateInputPanel({
 }) {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const { data: suggestions = [], isLoading: isSuggestionsLoading } = useQuery({
+    queryKey: ["/api/geocode/autocomplete", debouncedQuery],
+    enabled: debouncedQuery.length >= 3 && showSuggestions,
+  });
   
   const {
     register,
@@ -255,8 +270,31 @@ function CoordinateInputPanel({
     e.preventDefault();
     if (searchQuery.trim()) {
       searchMutation.mutate(searchQuery);
+      setShowSuggestions(false);
     }
   };
+
+  const handleSuggestionClick = (suggestion: any) => {
+    const lat = parseFloat(suggestion.lat);
+    const lon = parseFloat(suggestion.lon);
+    onNavigate(lat, lon);
+    setSearchQuery("");
+    setShowSuggestions(false);
+    toast({
+      title: "Location Found",
+      description: suggestion.display_name,
+    });
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchInputRef.current && !searchInputRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
     <Card className="w-full lg:w-96 h-full lg:h-screen flex flex-col overflow-hidden">
@@ -284,16 +322,53 @@ function CoordinateInputPanel({
               <Label htmlFor="search" className="text-sm font-medium">
                 Address Search
               </Label>
-              <div className="flex gap-2">
-                <Input
-                  id="search"
-                  type="text"
-                  placeholder="e.g., Empire State Building"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  disabled={searchMutation.isPending}
-                />
-                <Button type="submit" size="icon" disabled={searchMutation.isPending}>
+              <div className="flex gap-2 relative" ref={searchInputRef}>
+                <div className="flex-1 relative">
+                  <Input
+                    id="search"
+                    type="text"
+                    placeholder="e.g., Empire State Building"
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setShowSuggestions(true);
+                    }}
+                    onFocus={() => setShowSuggestions(true)}
+                    disabled={searchMutation.isPending}
+                    data-testid="input-address-search"
+                    autoComplete="off"
+                  />
+                  {showSuggestions && searchQuery.length >= 3 && (
+                    <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-64 overflow-y-auto">
+                      {isSuggestionsLoading ? (
+                        <div className="p-3 text-center text-sm text-muted-foreground" data-testid="text-loading-suggestions">
+                          <Loader2 className="w-4 h-4 animate-spin mx-auto mb-1" />
+                          Loading suggestions...
+                        </div>
+                      ) : suggestions.length > 0 ? (
+                        <div className="py-1">
+                          {suggestions.map((suggestion: any, index: number) => (
+                            <button
+                              key={`${suggestion.place_id}-${index}`}
+                              type="button"
+                              onClick={() => handleSuggestionClick(suggestion)}
+                              className="w-full px-3 py-2 text-left text-sm hover-elevate active-elevate-2 flex items-start gap-2 border-b last:border-b-0"
+                              data-testid={`suggestion-${index}`}
+                            >
+                              <MapPin className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                              <span className="flex-1 text-foreground">{suggestion.display_name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-3 text-center text-sm text-muted-foreground" data-testid="text-no-suggestions">
+                          No suggestions found
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <Button type="submit" size="icon" disabled={searchMutation.isPending} data-testid="button-search">
                   {searchMutation.isPending ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (

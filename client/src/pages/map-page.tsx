@@ -193,8 +193,15 @@ function CoordinateInputPanel({
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const { data: suggestions = [], isLoading: isSuggestionsLoading } = useQuery({
+  const { data: suggestions = [], isLoading: isSuggestionsLoading } = useQuery<any[]>({
     queryKey: ["/api/geocode/autocomplete", debouncedQuery],
+    queryFn: async () => {
+      const response = await fetch(`/api/geocode/autocomplete?q=${encodeURIComponent(debouncedQuery)}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch autocomplete suggestions");
+      }
+      return response.json();
+    },
     enabled: debouncedQuery.length >= 3 && showSuggestions,
   });
   

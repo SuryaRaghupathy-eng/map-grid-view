@@ -247,6 +247,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/geocode/autocomplete", async (req, res) => {
+    try {
+      const clientId = getClientIdentifier(req);
+      
+      if (!checkRateLimit(clientId)) {
+        return res.status(429).json({
+          error: "Rate limit exceeded. Please wait before making more requests.",
+        });
+      }
+
+      const { q } = req.query;
+      
+      if (!q || typeof q !== 'string') {
+        return res.json([]);
+      }
+
+      if (q.length < 3) {
+        return res.json([]);
+      }
+
+      if (q.length > 200) {
+        return res.status(400).json({
+          error: "Search query too long",
+        });
+      }
+
+      const data = await rateLimitedGeocode(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&addressdetails=1&limit=8`
+      );
+
+      return res.json(data);
+    } catch (error: any) {
+      return res.status(error.message.includes("Rate limit") ? 429 : 500).json({
+        error: error.message || "Failed to autocomplete",
+      });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, CircleMarker } from "react-leaflet";
 import { LatLngExpression, Icon } from "leaflet";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,13 +8,15 @@ import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { coordinateInputSchema, type CoordinateInput, type Favorite } from "@shared/schema";
-import { MapPin, Navigation, Plus, Minus, RotateCcw, Star, Trash2, Locate, Search, Map as MapIcon, Loader2 } from "lucide-react";
+import { MapPin, Navigation, Plus, Minus, RotateCcw, Star, Trash2, Locate, Search, Map as MapIcon, Loader2, Grid3X3, ChevronDown, ChevronUp, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import "leaflet/dist/leaflet.css";
 
 const DEFAULT_CENTER: LatLngExpression = [40.7128, -74.0060];
@@ -55,6 +57,80 @@ const MAP_STYLES = {
     attribution: '&copy; <a href="https://opentopomap.org">OpenTopoMap</a>',
   },
 };
+
+interface GridPoint {
+  id: string;
+  lat: number;
+  lng: number;
+  row: number;
+  col: number;
+  isSelected: boolean;
+  isCenter: boolean;
+}
+
+interface GridConfig {
+  enabled: boolean;
+  distanceUnit: "meters" | "miles";
+  spacing: number;
+  gridSize: number;
+}
+
+const GRID_SIZES = [
+  { value: 3, label: "3x3" },
+  { value: 5, label: "5x5" },
+  { value: 7, label: "7x7" },
+  { value: 9, label: "9x9" },
+];
+
+const SPACING_OPTIONS_MILES = [
+  { value: 1, label: "1 mile" },
+  { value: 2, label: "2 miles" },
+  { value: 5, label: "5 miles" },
+  { value: 10, label: "10 miles" },
+];
+
+const SPACING_OPTIONS_METERS = [
+  { value: 500, label: "500 meters" },
+  { value: 1000, label: "1 km" },
+  { value: 2000, label: "2 km" },
+  { value: 5000, label: "5 km" },
+];
+
+function calculateGridPoints(
+  centerLat: number,
+  centerLng: number,
+  spacing: number,
+  gridSize: number,
+  distanceUnit: "meters" | "miles"
+): GridPoint[] {
+  const points: GridPoint[] = [];
+  const half = Math.floor(gridSize / 2);
+  
+  const spacingInMeters = distanceUnit === "miles" ? spacing * 1609.34 : spacing;
+  
+  const latOffset = spacingInMeters / 111320;
+  const lngOffset = spacingInMeters / (111320 * Math.cos(centerLat * Math.PI / 180));
+
+  for (let row = -half; row <= half; row++) {
+    for (let col = -half; col <= half; col++) {
+      const lat = centerLat + (row * latOffset);
+      const lng = centerLng + (col * lngOffset);
+      const isCenter = row === 0 && col === 0;
+      
+      points.push({
+        id: `${row}_${col}`,
+        lat,
+        lng,
+        row,
+        col,
+        isSelected: true,
+        isCenter,
+      });
+    }
+  }
+
+  return points;
+}
 
 function MapController({ center, zoom }: { center: LatLngExpression; zoom: number }) {
   const map = useMap();
@@ -162,6 +238,177 @@ function SaveFavoriteDialog({
   );
 }
 
+function GridConfigPanel({
+  gridConfig,
+  onGridConfigChange,
+  gridPoints,
+  onToggleGridPoint,
+  onCreateReport,
+  onCancelGrid,
+  centerLocation,
+}: {
+  gridConfig: GridConfig;
+  onGridConfigChange: (config: Partial<GridConfig>) => void;
+  gridPoints: GridPoint[];
+  onToggleGridPoint: (pointId: string) => void;
+  onCreateReport: () => void;
+  onCancelGrid: () => void;
+  centerLocation: { lat: number; lng: number; address?: string } | null;
+}) {
+  const [mapCriteriaOpen, setMapCriteriaOpen] = useState(true);
+  const [locationOpen, setLocationOpen] = useState(false);
+  const [keywordsOpen, setKeywordsOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const selectedCount = gridPoints.filter(p => p.isSelected).length;
+  const totalCount = gridPoints.length;
+  const spacingOptions = gridConfig.distanceUnit === "miles" ? SPACING_OPTIONS_MILES : SPACING_OPTIONS_METERS;
+
+  return (
+    <Card className="absolute left-4 top-4 z-[1000] w-80 bg-background/95 backdrop-blur-sm shadow-lg max-h-[calc(100vh-2rem)] overflow-y-auto">
+      <div className="p-4 space-y-4">
+        <div className="space-y-1">
+          <p className="text-xs text-muted-foreground">Add Report</p>
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <Grid3X3 className="w-5 h-5" />
+            Local Search Grid
+          </h2>
+        </div>
+
+        <Collapsible open={locationOpen} onOpenChange={setLocationOpen}>
+          <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium border-b">
+            <span>Location and Business Details</span>
+            {locationOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-3 space-y-2">
+            {centerLocation && (
+              <div className="text-sm space-y-1">
+                <p className="text-muted-foreground">Center Point:</p>
+                <p className="font-mono text-xs">{centerLocation.lat.toFixed(6)}°, {centerLocation.lng.toFixed(6)}°</p>
+                {centerLocation.address && (
+                  <p className="text-xs text-muted-foreground">{centerLocation.address}</p>
+                )}
+              </div>
+            )}
+          </CollapsibleContent>
+        </Collapsible>
+
+        <Collapsible open={mapCriteriaOpen} onOpenChange={setMapCriteriaOpen}>
+          <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium border-b">
+            <span>Map Criteria</span>
+            {mapCriteriaOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-3 space-y-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Distance between Grid Points:</Label>
+                <span className="text-xs text-primary font-medium">
+                  Grid points selected: {selectedCount}/{totalCount}
+                </span>
+              </div>
+              <RadioGroup
+                value={gridConfig.distanceUnit}
+                onValueChange={(value) => onGridConfigChange({ 
+                  distanceUnit: value as "meters" | "miles",
+                  spacing: value === "miles" ? 5 : 1000
+                })}
+                className="flex gap-4"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="meters" id="meters" />
+                  <Label htmlFor="meters" className="text-sm">Meters</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="miles" id="miles" />
+                  <Label htmlFor="miles" className="text-sm">Miles</Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs">Grid point spacing:</Label>
+                <Select
+                  value={String(gridConfig.spacing)}
+                  onValueChange={(value) => onGridConfigChange({ spacing: Number(value) })}
+                >
+                  <SelectTrigger data-testid="select-grid-spacing">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {spacingOptions.map((option) => (
+                      <SelectItem key={option.value} value={String(option.value)}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs">Grid size template:</Label>
+                <Select
+                  value={String(gridConfig.gridSize)}
+                  onValueChange={(value) => onGridConfigChange({ gridSize: Number(value) })}
+                >
+                  <SelectTrigger data-testid="select-grid-size">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {GRID_SIZES.map((size) => (
+                      <SelectItem key={size.value} value={String(size.value)}>
+                        {size.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+
+        <Collapsible open={keywordsOpen} onOpenChange={setKeywordsOpen}>
+          <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium border-b">
+            <span>Keywords</span>
+            {keywordsOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-3">
+            <p className="text-xs text-muted-foreground">Keywords configuration coming soon...</p>
+          </CollapsibleContent>
+        </Collapsible>
+
+        <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen}>
+          <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium border-b">
+            <span>General Settings</span>
+            {settingsOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-3">
+            <p className="text-xs text-muted-foreground">Additional settings coming soon...</p>
+          </CollapsibleContent>
+        </Collapsible>
+
+        <div className="flex gap-2 pt-2">
+          <Button 
+            onClick={onCreateReport}
+            variant="outline"
+            className="flex-1"
+            data-testid="button-create-report"
+          >
+            Create Report
+          </Button>
+          <Button 
+            onClick={onCancelGrid}
+            variant="ghost"
+            data-testid="button-cancel-grid"
+          >
+            Cancel
+          </Button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 function CoordinateInputPanel({
   onNavigate,
   currentPosition,
@@ -170,6 +417,7 @@ function CoordinateInputPanel({
   favorites,
   isLoadingFavorites,
   onDeleteFavorite,
+  onShowGrid,
 }: {
   onNavigate: (lat: number, lng: number) => void;
   currentPosition: { lat: number; lng: number; address?: string } | null;
@@ -178,6 +426,7 @@ function CoordinateInputPanel({
   favorites: Favorite[];
   isLoadingFavorites: boolean;
   onDeleteFavorite: (id: string) => void;
+  onShowGrid: () => void;
 }) {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
@@ -468,16 +717,27 @@ function CoordinateInputPanel({
 
             {currentPosition && (
               <div className="space-y-2 pt-4 border-t">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                   <h2 className="text-sm font-medium text-foreground">Current Location</h2>
-                  <Button 
-                    size="sm" 
-                    variant="ghost"
-                    onClick={onSaveFavorite}
-                  >
-                    <Star className="w-4 h-4 mr-1" />
-                    Save
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button 
+                      size="sm" 
+                      variant="ghost"
+                      onClick={onSaveFavorite}
+                    >
+                      <Star className="w-4 h-4 mr-1" />
+                      Save
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="default"
+                      onClick={onShowGrid}
+                      data-testid="button-show-grid"
+                    >
+                      <Grid3X3 className="w-4 h-4 mr-1" />
+                      Grid
+                    </Button>
+                  </div>
                 </div>
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-sm">
@@ -664,6 +924,13 @@ export default function MapPage() {
   const [currentAddress, setCurrentAddress] = useState<string | undefined>(undefined);
   const [mapStyle, setMapStyle] = useState<keyof typeof MAP_STYLES>("street");
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [gridConfig, setGridConfig] = useState<GridConfig>({
+    enabled: false,
+    distanceUnit: "miles",
+    spacing: 5,
+    gridSize: 7,
+  });
+  const [gridPoints, setGridPoints] = useState<GridPoint[]>([]);
   const mapRef = useRef<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -849,6 +1116,108 @@ export default function MapPage() {
     return { lat, lng, address: currentAddress };
   };
 
+  useEffect(() => {
+    if (gridConfig.enabled && markerPosition) {
+      const [lat, lng] = Array.isArray(markerPosition) 
+        ? markerPosition 
+        : [markerPosition.lat, markerPosition.lng];
+      
+      const points = calculateGridPoints(
+        lat,
+        lng,
+        gridConfig.spacing,
+        gridConfig.gridSize,
+        gridConfig.distanceUnit
+      );
+      setGridPoints(points);
+    }
+  }, [markerPosition, gridConfig.enabled, gridConfig.spacing, gridConfig.gridSize, gridConfig.distanceUnit]);
+
+  const handleShowGrid = useCallback(() => {
+    if (!markerPosition) {
+      toast({
+        variant: "destructive",
+        title: "No Location Selected",
+        description: "Please select a location first before creating a grid",
+      });
+      return;
+    }
+
+    const [lat, lng] = Array.isArray(markerPosition) 
+      ? markerPosition 
+      : [markerPosition.lat, markerPosition.lng];
+
+    const points = calculateGridPoints(
+      lat,
+      lng,
+      gridConfig.spacing,
+      gridConfig.gridSize,
+      gridConfig.distanceUnit
+    );
+    
+    setGridPoints(points);
+    setGridConfig(prev => ({ ...prev, enabled: true }));
+    
+    const gridSizeInDegrees = gridConfig.distanceUnit === "miles" 
+      ? (gridConfig.spacing * gridConfig.gridSize * 1609.34) / 111320
+      : (gridConfig.spacing * gridConfig.gridSize) / 111320;
+    
+    const optimalZoom = Math.max(8, Math.min(14, 11 - Math.log2(gridSizeInDegrees * 100)));
+    setZoom(Math.round(optimalZoom));
+    
+    toast({
+      title: "Grid Created",
+      description: `${gridConfig.gridSize}x${gridConfig.gridSize} grid with ${gridConfig.spacing} ${gridConfig.distanceUnit} spacing`,
+    });
+  }, [markerPosition, gridConfig, toast]);
+
+  const handleGridConfigChange = useCallback((updates: Partial<GridConfig>) => {
+    setGridConfig(prev => {
+      const newConfig = { ...prev, ...updates };
+      
+      if (prev.enabled) {
+        const currentPos = getCurrentPosition();
+        if (currentPos) {
+          const points = calculateGridPoints(
+            currentPos.lat,
+            currentPos.lng,
+            newConfig.spacing,
+            newConfig.gridSize,
+            newConfig.distanceUnit
+          );
+          setGridPoints(points);
+        }
+      }
+      
+      return newConfig;
+    });
+  }, []);
+
+  const handleToggleGridPoint = useCallback((pointId: string) => {
+    setGridPoints(prev => 
+      prev.map(point => 
+        point.id === pointId 
+          ? { ...point, isSelected: !point.isSelected }
+          : point
+      )
+    );
+  }, []);
+
+  const handleCreateReport = useCallback(() => {
+    const selectedPoints = gridPoints.filter(p => p.isSelected);
+    toast({
+      title: "Report Created",
+      description: `Report generated with ${selectedPoints.length} grid points`,
+    });
+    setGridConfig(prev => ({ ...prev, enabled: false }));
+    setGridPoints([]);
+  }, [gridPoints, toast]);
+
+  const handleCancelGrid = useCallback(() => {
+    setGridConfig(prev => ({ ...prev, enabled: false }));
+    setGridPoints([]);
+  }, []);
+
   return (
     <>
       <div className="flex flex-col lg:flex-row h-screen w-full overflow-hidden">
@@ -860,6 +1229,7 @@ export default function MapPage() {
           favorites={favorites}
           isLoadingFavorites={isLoadingFavorites}
           onDeleteFavorite={(id) => deleteFavoriteMutation.mutate(id)}
+          onShowGrid={handleShowGrid}
         />
         
         <div className="relative flex-1 h-full" data-testid="map-container">
@@ -912,6 +1282,40 @@ export default function MapPage() {
                 </Popup>
               </Marker>
             ))}
+            {gridConfig.enabled && gridPoints.map((point) => (
+              <CircleMarker
+                key={point.id}
+                center={[point.lat, point.lng]}
+                radius={point.isCenter ? 12 : 10}
+                pathOptions={{
+                  fillColor: point.isCenter 
+                    ? "#1e40af" 
+                    : point.isSelected 
+                      ? "#3b82f6" 
+                      : "#94a3b8",
+                  fillOpacity: point.isCenter ? 0.9 : point.isSelected ? 0.7 : 0.4,
+                  color: point.isCenter ? "#1e3a8a" : point.isSelected ? "#2563eb" : "#64748b",
+                  weight: point.isCenter ? 3 : 2,
+                }}
+                eventHandlers={{
+                  click: () => !point.isCenter && handleToggleGridPoint(point.id),
+                }}
+              >
+                <Popup>
+                  <div className="p-2 text-center">
+                    <p className="font-medium mb-1">
+                      {point.isCenter ? "Center Point" : `Grid Point (${point.row}, ${point.col})`}
+                    </p>
+                    <p className="text-sm font-mono">
+                      {point.lat.toFixed(6)}°, {point.lng.toFixed(6)}°
+                    </p>
+                    <p className="text-xs mt-1">
+                      {point.isSelected ? "Selected" : "Not Selected"}
+                    </p>
+                  </div>
+                </Popup>
+              </CircleMarker>
+            ))}
           </MapContainer>
           
           <MapControls
@@ -921,6 +1325,18 @@ export default function MapPage() {
             mapStyle={mapStyle}
             onMapStyleChange={setMapStyle}
           />
+          
+          {gridConfig.enabled && (
+            <GridConfigPanel
+              gridConfig={gridConfig}
+              onGridConfigChange={handleGridConfigChange}
+              gridPoints={gridPoints}
+              onToggleGridPoint={handleToggleGridPoint}
+              onCreateReport={handleCreateReport}
+              onCancelGrid={handleCancelGrid}
+              centerLocation={getCurrentPosition()}
+            />
+          )}
         </div>
       </div>
       

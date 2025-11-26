@@ -353,6 +353,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/places/search", async (req, res) => {
+    try {
+      const { q, lat, lng, num = 20 } = req.body;
+      
+      if (!q || typeof q !== 'string') {
+        return res.status(400).json({
+          error: "Missing search query",
+        });
+      }
+
+      const SERPER_API_KEY = process.env.SERPER_API_KEY;
+      
+      if (!SERPER_API_KEY) {
+        return res.status(500).json({
+          error: "Serper API key not configured",
+        });
+      }
+
+      const payload: any = {
+        q,
+        num: Math.min(num, 100),
+      };
+
+      if (lat && lng) {
+        payload.ll = `@${lat},${lng},14z`;
+      }
+
+      const response = await fetch("https://google.serper.dev/places", {
+        method: "POST",
+        headers: {
+          "X-API-KEY": SERPER_API_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Serper API error:", errorText);
+        return res.status(response.status).json({
+          error: "Failed to search places",
+          details: errorText,
+        });
+      }
+
+      const data = await response.json();
+      return res.json(data);
+    } catch (error: any) {
+      console.error("Places search error:", error);
+      return res.status(500).json({
+        error: "Failed to search places",
+        details: error?.message,
+      });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { coordinateInputSchema, type CoordinateInput, type Favorite } from "@shared/schema";
-import { MapPin, Navigation, Plus, Minus, RotateCcw, Star, Trash2, Locate, Search, Map as MapIcon, Loader2, Grid3X3, ChevronDown, ChevronUp, X } from "lucide-react";
+import { MapPin, Navigation, Plus, Minus, RotateCcw, Star, Trash2, Locate, Search, Map as MapIcon, Loader2, Grid3X3, ChevronDown, ChevronUp, X, Building2, ExternalLink, Phone, Globe, Trophy, Filter } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,7 +17,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Badge } from "@/components/ui/badge";
+import { apiRequest } from "@/lib/queryClient";
 import "leaflet/dist/leaflet.css";
+
+interface PlaceResult {
+  position: number;
+  title: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  rating?: number;
+  ratingCount?: number;
+  type?: string;
+  types?: string[];
+  website?: string;
+  phoneNumber?: string;
+  cid?: string;
+  placeId?: string;
+  thumbnailUrl?: string;
+}
 
 const DEFAULT_CENTER: LatLngExpression = [40.7128, -74.0060];
 const DEFAULT_ZOOM = 13;
@@ -409,6 +428,349 @@ function GridConfigPanel({
   );
 }
 
+function BusinessRankingPanel({
+  currentPosition,
+  onNavigateToPlace,
+  onShowPlacesOnMap,
+}: {
+  currentPosition: { lat: number; lng: number; address?: string } | null;
+  onNavigateToPlace: (lat: number, lng: number) => void;
+  onShowPlacesOnMap: (places: PlaceResult[]) => void;
+}) {
+  const { toast } = useToast();
+  const [keyword, setKeyword] = useState("");
+  const [websiteFilter, setWebsiteFilter] = useState("");
+  const [places, setPlaces] = useState<PlaceResult[]>([]);
+  const [filteredPlaces, setFilteredPlaces] = useState<PlaceResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [trackedBusiness, setTrackedBusiness] = useState<PlaceResult | null>(null);
+
+  const extractDomain = (url: string): string => {
+    try {
+      const domain = new URL(url).hostname.replace(/^www\./, '');
+      return domain.toLowerCase();
+    } catch {
+      return url.toLowerCase().replace(/^www\./, '');
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!keyword.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Missing Keyword",
+        description: "Please enter a search keyword",
+      });
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const payload: any = { q: keyword, num: 20 };
+      
+      if (currentPosition) {
+        payload.lat = currentPosition.lat;
+        payload.lng = currentPosition.lng;
+      }
+
+      const response = await fetch("/api/places/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to search places");
+      }
+
+      const data = await response.json();
+      const results = data.places || [];
+      setPlaces(results);
+      
+      if (websiteFilter.trim()) {
+        filterByWebsite(results, websiteFilter);
+      } else {
+        setFilteredPlaces(results);
+      }
+
+      onShowPlacesOnMap(results);
+
+      toast({
+        title: "Search Complete",
+        description: `Found ${results.length} businesses`,
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Search Failed",
+        description: error.message,
+      });
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const filterByWebsite = (placesToFilter: PlaceResult[], filter: string) => {
+    if (!filter.trim()) {
+      setFilteredPlaces(placesToFilter);
+      setTrackedBusiness(null);
+      return;
+    }
+
+    const filterDomain = extractDomain(filter);
+    const matched = placesToFilter.filter(place => {
+      if (!place.website) return false;
+      const placeDomain = extractDomain(place.website);
+      return placeDomain.includes(filterDomain) || filterDomain.includes(placeDomain);
+    });
+
+    setFilteredPlaces(placesToFilter);
+    
+    if (matched.length > 0) {
+      setTrackedBusiness(matched[0]);
+      toast({
+        title: "Business Found",
+        description: `${matched[0].title} is ranked #${matched[0].position}`,
+      });
+    } else {
+      setTrackedBusiness(null);
+      toast({
+        variant: "destructive", 
+        title: "Not Found",
+        description: "No business found with that website in the results",
+      });
+    }
+  };
+
+  const handleWebsiteFilterChange = (value: string) => {
+    setWebsiteFilter(value);
+    if (places.length > 0) {
+      filterByWebsite(places, value);
+    }
+  };
+
+  const openGoogleMaps = (place: PlaceResult) => {
+    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.title)}&query_place_id=${place.placeId}`;
+    window.open(url, '_blank');
+  };
+
+  const renderStars = (rating: number) => {
+    const fullStars = Math.floor(rating);
+    const hasHalf = rating % 1 >= 0.5;
+    return (
+      <span className="text-yellow-500 dark:text-yellow-400">
+        {'★'.repeat(fullStars)}
+        {hasHalf && '½'}
+        {'☆'.repeat(5 - fullStars - (hasHalf ? 1 : 0))}
+      </span>
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-3">
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Search Keyword</Label>
+          <Input
+            placeholder="e.g., estate agents in luton"
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            data-testid="input-ranking-keyword"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-sm font-medium flex items-center gap-2">
+            <Filter className="w-4 h-4" />
+            Track by Website (optional)
+          </Label>
+          <Input
+            placeholder="e.g., example.com"
+            value={websiteFilter}
+            onChange={(e) => handleWebsiteFilterChange(e.target.value)}
+            data-testid="input-website-filter"
+          />
+          <p className="text-xs text-muted-foreground">
+            Enter your website to find your ranking position
+          </p>
+        </div>
+
+        <Button
+          onClick={handleSearch}
+          disabled={isSearching}
+          className="w-full"
+          data-testid="button-search-ranking"
+        >
+          {isSearching ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Searching...
+            </>
+          ) : (
+            <>
+              <Search className="w-4 h-4 mr-2" />
+              Search Rankings
+            </>
+          )}
+        </Button>
+
+        {currentPosition && (
+          <p className="text-xs text-muted-foreground text-center">
+            Searching near: {currentPosition.lat.toFixed(4)}, {currentPosition.lng.toFixed(4)}
+          </p>
+        )}
+      </div>
+
+      {trackedBusiness && (
+        <Card className="p-4 border-primary bg-primary/5">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Trophy className="w-5 h-5 text-primary" />
+              <span className="font-semibold">Your Business Ranking</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Badge variant="default" className="text-lg px-3 py-1">
+                #{trackedBusiness.position}
+              </Badge>
+              <div className="flex-1">
+                <p className="font-medium text-sm">{trackedBusiness.title}</p>
+                {trackedBusiness.rating && (
+                  <div className="flex items-center gap-1 text-xs">
+                    {renderStars(trackedBusiness.rating)}
+                    <span className="text-muted-foreground">
+                      ({trackedBusiness.ratingCount} reviews)
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onNavigateToPlace(trackedBusiness.latitude, trackedBusiness.longitude)}
+                data-testid="button-navigate-tracked"
+              >
+                <MapPin className="w-3 h-3 mr-1" />
+                View on Map
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => openGoogleMaps(trackedBusiness)}
+                data-testid="button-google-maps-tracked"
+              >
+                <ExternalLink className="w-3 h-3 mr-1" />
+                Google Maps
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {filteredPlaces.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-medium">
+              Results ({filteredPlaces.length})
+            </Label>
+          </div>
+          <ScrollArea className="h-64">
+            <div className="space-y-2 pr-4">
+              {filteredPlaces.map((place) => (
+                <Card
+                  key={place.cid || place.position}
+                  className={`p-3 hover-elevate cursor-pointer ${
+                    trackedBusiness?.cid === place.cid ? 'border-primary bg-primary/5' : ''
+                  }`}
+                  onClick={() => onNavigateToPlace(place.latitude, place.longitude)}
+                  data-testid={`place-result-${place.position}`}
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="text-xs">
+                          #{place.position}
+                        </Badge>
+                        <span className="font-medium text-sm line-clamp-1">{place.title}</span>
+                      </div>
+                    </div>
+                    
+                    <p className="text-xs text-muted-foreground line-clamp-1">
+                      {place.address}
+                    </p>
+                    
+                    {place.rating && (
+                      <div className="flex items-center gap-1 text-xs">
+                        {renderStars(place.rating)}
+                        <span className="text-muted-foreground">
+                          {place.rating} ({place.ratingCount})
+                        </span>
+                      </div>
+                    )}
+                    
+                    {place.type && (
+                      <Badge variant="outline" className="text-xs">
+                        {place.type}
+                      </Badge>
+                    )}
+                    
+                    <div className="flex gap-1 pt-1 flex-wrap">
+                      {place.website && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-2 text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(place.website, '_blank');
+                          }}
+                          data-testid={`button-website-${place.position}`}
+                        >
+                          <Globe className="w-3 h-3 mr-1" />
+                          Website
+                        </Button>
+                      )}
+                      {place.phoneNumber && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-2 text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(`tel:${place.phoneNumber}`, '_blank');
+                          }}
+                          data-testid={`button-phone-${place.position}`}
+                        >
+                          <Phone className="w-3 h-3 mr-1" />
+                          Call
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2 text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openGoogleMaps(place);
+                        }}
+                        data-testid={`button-gmaps-${place.position}`}
+                      >
+                        <ExternalLink className="w-3 h-3 mr-1" />
+                        Google Maps
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </ScrollArea>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CoordinateInputPanel({
   onNavigate,
   currentPosition,
@@ -418,6 +780,7 @@ function CoordinateInputPanel({
   isLoadingFavorites,
   onDeleteFavorite,
   onShowGrid,
+  onShowPlacesOnMap,
 }: {
   onNavigate: (lat: number, lng: number) => void;
   currentPosition: { lat: number; lng: number; address?: string } | null;
@@ -427,6 +790,7 @@ function CoordinateInputPanel({
   isLoadingFavorites: boolean;
   onDeleteFavorite: (id: string) => void;
   onShowGrid: () => void;
+  onShowPlacesOnMap: (places: PlaceResult[]) => void;
 }) {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
@@ -566,10 +930,12 @@ function CoordinateInputPanel({
         </div>
 
         <Tabs defaultValue="coordinates" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="coordinates">Coordinates</TabsTrigger>
-            <TabsTrigger value="favorites">
-              Favorites {favorites.length > 0 && `(${favorites.length})`}
+            <TabsTrigger value="favorites">Favorites</TabsTrigger>
+            <TabsTrigger value="ranking">
+              <Building2 className="w-3 h-3 mr-1" />
+              Ranking
             </TabsTrigger>
           </TabsList>
           
@@ -849,6 +1215,14 @@ function CoordinateInputPanel({
               </ScrollArea>
             )}
           </TabsContent>
+
+          <TabsContent value="ranking" className="space-y-4 mt-4">
+            <BusinessRankingPanel 
+              currentPosition={currentPosition}
+              onNavigateToPlace={onNavigate}
+              onShowPlacesOnMap={onShowPlacesOnMap}
+            />
+          </TabsContent>
         </Tabs>
       </div>
     </Card>
@@ -931,6 +1305,7 @@ export default function MapPage() {
     gridSize: 7,
   });
   const [gridPoints, setGridPoints] = useState<GridPoint[]>([]);
+  const [businessPlaces, setBusinessPlaces] = useState<PlaceResult[]>([]);
   const mapRef = useRef<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -1218,6 +1593,16 @@ export default function MapPage() {
     setGridPoints([]);
   }, []);
 
+  const handleShowPlacesOnMap = useCallback((places: PlaceResult[]) => {
+    setBusinessPlaces(places);
+    if (places.length > 0) {
+      const avgLat = places.reduce((sum, p) => sum + p.latitude, 0) / places.length;
+      const avgLng = places.reduce((sum, p) => sum + p.longitude, 0) / places.length;
+      setMapCenter([avgLat, avgLng]);
+      setZoom(12);
+    }
+  }, []);
+
   return (
     <>
       <div className="flex flex-col lg:flex-row h-screen w-full overflow-hidden">
@@ -1230,6 +1615,7 @@ export default function MapPage() {
           isLoadingFavorites={isLoadingFavorites}
           onDeleteFavorite={(id) => deleteFavoriteMutation.mutate(id)}
           onShowGrid={handleShowGrid}
+          onShowPlacesOnMap={handleShowPlacesOnMap}
         />
         
         <div className="relative flex-1 h-full" data-testid="map-container">
@@ -1312,6 +1698,62 @@ export default function MapPage() {
                     <p className="text-xs mt-1">
                       {point.isSelected ? "Selected" : "Not Selected"}
                     </p>
+                  </div>
+                </Popup>
+              </CircleMarker>
+            ))}
+            {businessPlaces.map((place) => (
+              <CircleMarker
+                key={place.cid || `place-${place.position}`}
+                center={[place.latitude, place.longitude]}
+                radius={8}
+                pathOptions={{
+                  fillColor: "#f97316",
+                  fillOpacity: 0.8,
+                  color: "#ea580c",
+                  weight: 2,
+                }}
+              >
+                <Popup>
+                  <div className="p-2 max-w-xs">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="bg-orange-500 text-white text-xs font-bold px-1.5 py-0.5 rounded">
+                        #{place.position}
+                      </span>
+                      <p className="font-medium text-sm">{place.title}</p>
+                    </div>
+                    <p className="text-xs text-gray-600 mb-1">{place.address}</p>
+                    {place.rating && (
+                      <p className="text-xs mb-1">
+                        <span className="text-yellow-500">{'★'.repeat(Math.floor(place.rating))}</span>
+                        {' '}{place.rating} ({place.ratingCount} reviews)
+                      </p>
+                    )}
+                    {place.type && (
+                      <p className="text-xs text-gray-500 mb-2">{place.type}</p>
+                    )}
+                    <div className="flex gap-2 flex-wrap">
+                      {place.website && (
+                        <a 
+                          href={place.website} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-600 hover:underline"
+                        >
+                          Website
+                        </a>
+                      )}
+                      {place.placeId && (
+                        <a 
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.title)}&query_place_id=${place.placeId}`}
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-600 hover:underline"
+                        >
+                          View in Google Maps
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </Popup>
               </CircleMarker>

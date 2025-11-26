@@ -126,9 +126,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const allFavorites = await storage.getFavorites();
       return res.json(allFavorites);
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Error fetching favorites:", error);
       return res.status(500).json({
         error: "Failed to fetch favorites",
+        details: error?.message,
       });
     }
   });
@@ -235,11 +237,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const data = await rateLimitedGeocode(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&addressdetails=1&limit=5`
+      const ukPostcodePattern = /[A-Z]{1,2}[0-9][0-9A-Z]?\s*[0-9][A-Z]{2}/i;
+      const isUKAddress = q.toLowerCase().includes('uk') || 
+                          q.toLowerCase().includes('united kingdom') ||
+                          q.toLowerCase().includes('england') ||
+                          q.toLowerCase().includes('scotland') ||
+                          q.toLowerCase().includes('wales') ||
+                          ukPostcodePattern.test(q);
+
+      let baseUrl = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5`;
+      
+      if (isUKAddress) {
+        baseUrl += `&countrycodes=gb`;
+      }
+
+      let data = await rateLimitedGeocode(
+        `${baseUrl}&q=${encodeURIComponent(q)}`
       );
 
-      return res.json(data);
+      if ((!data || data.length === 0) && q.includes(',')) {
+        const parts = q.split(',').map(p => p.trim());
+        if (parts.length >= 2) {
+          const simplifiedQuery = parts.slice(-3).join(', ');
+          data = await rateLimitedGeocode(
+            `${baseUrl}&q=${encodeURIComponent(simplifiedQuery)}`
+          );
+        }
+      }
+
+      if ((!data || data.length === 0) && ukPostcodePattern.test(q)) {
+        const postcodeMatch = q.match(ukPostcodePattern);
+        if (postcodeMatch) {
+          data = await rateLimitedGeocode(
+            `${baseUrl}&postalcode=${encodeURIComponent(postcodeMatch[0])}&countrycodes=gb`
+          );
+        }
+      }
+
+      return res.json(data || []);
     } catch (error: any) {
       return res.status(error.message.includes("Rate limit") ? 429 : 500).json({
         error: error.message || "Failed to search address",
@@ -273,11 +308,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const data = await rateLimitedGeocode(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&addressdetails=1&limit=8`
+      const ukPostcodePattern = /[A-Z]{1,2}[0-9][0-9A-Z]?\s*[0-9][A-Z]{2}/i;
+      const isUKAddress = q.toLowerCase().includes('uk') || 
+                          q.toLowerCase().includes('united kingdom') ||
+                          q.toLowerCase().includes('england') ||
+                          q.toLowerCase().includes('scotland') ||
+                          q.toLowerCase().includes('wales') ||
+                          ukPostcodePattern.test(q);
+
+      let baseUrl = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=10&dedupe=0`;
+      
+      if (isUKAddress) {
+        baseUrl += `&countrycodes=gb`;
+      }
+
+      let data = await rateLimitedGeocode(
+        `${baseUrl}&q=${encodeURIComponent(q)}`
       );
 
-      return res.json(data);
+      if ((!data || data.length === 0) && q.includes(',')) {
+        const parts = q.split(',').map(p => p.trim());
+        if (parts.length >= 2) {
+          const simplifiedQuery = parts.slice(-3).join(', ');
+          data = await rateLimitedGeocode(
+            `${baseUrl}&q=${encodeURIComponent(simplifiedQuery)}`
+          );
+        }
+      }
+
+      if ((!data || data.length === 0) && ukPostcodePattern.test(q)) {
+        const postcodeMatch = q.match(ukPostcodePattern);
+        if (postcodeMatch) {
+          data = await rateLimitedGeocode(
+            `${baseUrl}&postalcode=${encodeURIComponent(postcodeMatch[0])}&countrycodes=gb`
+          );
+        }
+      }
+
+      return res.json(data || []);
     } catch (error: any) {
       return res.status(error.message.includes("Rate limit") ? 429 : 500).json({
         error: error.message || "Failed to autocomplete",

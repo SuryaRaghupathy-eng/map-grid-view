@@ -413,7 +413,7 @@ function GridConfigPanel({
             <div className="space-y-2">
               <Label className="text-xs flex items-center gap-2">
                 <Filter className="w-3 h-3" />
-                Track by Website (optional)
+                Track by Website
               </Label>
               <Input
                 placeholder="e.g., example.com"
@@ -614,7 +614,7 @@ function BusinessRankingPanel({
         <div className="space-y-2">
           <Label className="text-sm font-medium flex items-center gap-2">
             <Filter className="w-4 h-4" />
-            Track by Website (optional)
+            Track by Website
           </Label>
           <Input
             placeholder="e.g., example.com"

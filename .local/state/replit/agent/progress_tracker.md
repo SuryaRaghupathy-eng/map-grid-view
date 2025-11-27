@@ -17,3 +17,7 @@
     - Added /report route to App.tsx
     - Modified handleCreateReport to store data in sessionStorage and navigate to report page
     - Report page includes CSV export functionality
+[x] 16. Enhanced UX with automatic tab switching and Generate Report button
+    - "Generate Report" button now has same functionality as "Create Report" button
+    - After location search or coordinate navigation, UI automatically switches to Grid Settings tab
+    - Used controlled Tabs component with activeTab state for programmatic tab switching

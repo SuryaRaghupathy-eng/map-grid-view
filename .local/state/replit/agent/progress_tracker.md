@@ -8,3 +8,4 @@
 [x] 8. Migration completed - all dependencies installed and workflow running successfully
 [x] 9. Fixed dropdown z-index issue in Local Search Grid panel - increased SelectContent z-index from 50 to 9999 to appear above map panel
 [x] 10. Final verification - npm install completed and workflow running successfully on port 5000
+[x] 11. Moved keyword search and website filter inputs from Ranking tab to Keywords collapsible section in Local Search Grid panel

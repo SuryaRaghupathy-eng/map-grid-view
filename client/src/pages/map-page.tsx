@@ -812,7 +812,8 @@ function CoordinateInputPanel({
   isLoadingFavorites,
   onDeleteFavorite,
   onShowGrid,
-  onShowPlacesOnMap,
+  businessWebsite,
+  onBusinessWebsiteChange,
 }: {
   onNavigate: (lat: number, lng: number) => void;
   currentPosition: { lat: number; lng: number; address?: string } | null;
@@ -822,7 +823,8 @@ function CoordinateInputPanel({
   isLoadingFavorites: boolean;
   onDeleteFavorite: (id: string) => void;
   onShowGrid: () => void;
-  onShowPlacesOnMap: (places: PlaceResult[]) => void;
+  businessWebsite: string;
+  onBusinessWebsiteChange: (value: string) => void;
 }) {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
@@ -962,19 +964,32 @@ function CoordinateInputPanel({
         </div>
 
         <Tabs defaultValue="coordinates" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="coordinates">Coordinates</TabsTrigger>
             <TabsTrigger value="favorites">Favorites</TabsTrigger>
-            <TabsTrigger value="ranking">
-              <Building2 className="w-3 h-3 mr-1" />
-              Ranking
-            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="coordinates" className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label htmlFor="business-website" className="text-sm font-medium">
+                Business Website
+              </Label>
+              <Input
+                id="business-website"
+                type="text"
+                placeholder="e.g., example.com"
+                value={businessWebsite}
+                onChange={(e) => onBusinessWebsiteChange(e.target.value)}
+                data-testid="input-business-website"
+              />
+              <p className="text-xs text-muted-foreground">
+                Enter your website to track ranking position
+              </p>
+            </div>
+
             <form onSubmit={handleSearchSubmit} className="space-y-2">
               <Label htmlFor="search" className="text-sm font-medium">
-                Address Search
+                Location Search
               </Label>
               <div className="flex gap-2 relative" ref={searchInputRef}>
                 <div className="flex-1 relative">
@@ -1247,14 +1262,6 @@ function CoordinateInputPanel({
               </ScrollArea>
             )}
           </TabsContent>
-
-          <TabsContent value="ranking" className="space-y-4 mt-4">
-            <BusinessRankingPanel 
-              currentPosition={currentPosition}
-              onNavigateToPlace={onNavigate}
-              onShowPlacesOnMap={onShowPlacesOnMap}
-            />
-          </TabsContent>
         </Tabs>
       </div>
     </Card>
@@ -1340,6 +1347,7 @@ export default function MapPage() {
   const [businessPlaces, setBusinessPlaces] = useState<PlaceResult[]>([]);
   const [gridKeyword, setGridKeyword] = useState("");
   const [gridWebsiteFilter, setGridWebsiteFilter] = useState("");
+  const [businessWebsite, setBusinessWebsite] = useState("");
   const mapRef = useRef<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -1649,7 +1657,8 @@ export default function MapPage() {
           isLoadingFavorites={isLoadingFavorites}
           onDeleteFavorite={(id) => deleteFavoriteMutation.mutate(id)}
           onShowGrid={handleShowGrid}
-          onShowPlacesOnMap={handleShowPlacesOnMap}
+          businessWebsite={businessWebsite}
+          onBusinessWebsiteChange={setBusinessWebsite}
         />
         
         <div className="relative flex-1 h-full" data-testid="map-container">

@@ -808,23 +808,27 @@ function CoordinateInputPanel({
   currentPosition,
   onSaveFavorite,
   onGetCurrentLocation,
-  favorites,
-  isLoadingFavorites,
-  onDeleteFavorite,
   onShowGrid,
   businessWebsite,
   onBusinessWebsiteChange,
+  gridConfig,
+  onGridConfigChange,
+  gridPoints,
+  gridKeyword,
+  onGridKeywordChange,
 }: {
   onNavigate: (lat: number, lng: number) => void;
   currentPosition: { lat: number; lng: number; address?: string } | null;
   onSaveFavorite: () => void;
   onGetCurrentLocation: () => void;
-  favorites: Favorite[];
-  isLoadingFavorites: boolean;
-  onDeleteFavorite: (id: string) => void;
   onShowGrid: () => void;
   businessWebsite: string;
   onBusinessWebsiteChange: (value: string) => void;
+  gridConfig: GridConfig;
+  onGridConfigChange: (config: Partial<GridConfig>) => void;
+  gridPoints: GridPoint[];
+  gridKeyword: string;
+  onGridKeywordChange: (value: string) => void;
 }) {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
@@ -966,7 +970,10 @@ function CoordinateInputPanel({
         <Tabs defaultValue="coordinates" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="coordinates">Coordinates</TabsTrigger>
-            <TabsTrigger value="favorites">Favorites</TabsTrigger>
+            <TabsTrigger value="favorites">
+              <Grid3X3 className="w-3 h-3 mr-1" />
+              Grid Settings
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="coordinates" className="space-y-4 mt-4">
@@ -1210,57 +1217,106 @@ function CoordinateInputPanel({
           </TabsContent>
 
           <TabsContent value="favorites" className="space-y-4 mt-4">
-            {isLoadingFavorites ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : favorites.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No saved favorites yet. Save your first location!
-              </p>
-            ) : (
-              <ScrollArea className="h-[400px]">
+            <Collapsible defaultOpen>
+              <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium border-b">
+                <span>Map Criteria</span>
+                <ChevronDown className="w-4 h-4" />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-3 space-y-4">
                 <div className="space-y-2">
-                  {favorites.map((fav) => (
-                    <div
-                      key={fav.id}
-                      className="p-3 rounded-md bg-muted/50 hover-elevate cursor-pointer"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div 
-                          className="flex-1"
-                          onClick={() => onNavigate(fav.latitude, fav.longitude)}
-                        >
-                          <div className="font-medium flex items-center gap-2">
-                            <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
-                            {fav.name}
-                          </div>
-                          {fav.address && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {fav.address}
-                            </p>
-                          )}
-                          <p className="text-xs font-mono text-muted-foreground mt-1">
-                            {fav.latitude.toFixed(6)}°, {fav.longitude.toFixed(6)}°
-                          </p>
-                        </div>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDeleteFavorite(fav.id);
-                          }}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">Distance between Grid Points:</Label>
+                    <span className="text-xs text-primary font-medium">
+                      Grid points selected: {gridPoints.filter(p => p.isSelected).length}/{gridPoints.length}
+                    </span>
+                  </div>
+                  <RadioGroup
+                    value={gridConfig.distanceUnit}
+                    onValueChange={(value) => onGridConfigChange({ 
+                      distanceUnit: value as "meters" | "miles",
+                      spacing: value === "miles" ? 5 : 1000
+                    })}
+                    className="flex gap-4"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="meters" id="meters-panel" />
+                      <Label htmlFor="meters-panel" className="text-sm">Meters</Label>
                     </div>
-                  ))}
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="miles" id="miles-panel" />
+                      <Label htmlFor="miles-panel" className="text-sm">Miles</Label>
+                    </div>
+                  </RadioGroup>
                 </div>
-              </ScrollArea>
-            )}
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs">Grid point spacing:</Label>
+                    <Select
+                      value={String(gridConfig.spacing)}
+                      onValueChange={(value) => onGridConfigChange({ spacing: Number(value) })}
+                    >
+                      <SelectTrigger data-testid="select-grid-spacing-panel">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(gridConfig.distanceUnit === "miles" ? SPACING_OPTIONS_MILES : SPACING_OPTIONS_METERS).map((option) => (
+                          <SelectItem key={option.value} value={String(option.value)}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs">Grid size template:</Label>
+                    <Select
+                      value={String(gridConfig.gridSize)}
+                      onValueChange={(value) => onGridConfigChange({ gridSize: Number(value) })}
+                    >
+                      <SelectTrigger data-testid="select-grid-size-panel">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {GRID_SIZES.map((size) => (
+                          <SelectItem key={size.value} value={String(size.value)}>
+                            {size.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+
+            <Collapsible defaultOpen>
+              <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium border-b">
+                <span>Keywords</span>
+                <ChevronDown className="w-4 h-4" />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-3 space-y-3">
+                <div className="space-y-2">
+                  <Label className="text-xs">Search Keyword</Label>
+                  <Input
+                    placeholder="e.g., estate agents in luton"
+                    value={gridKeyword}
+                    onChange={(e) => onGridKeywordChange(e.target.value)}
+                    data-testid="input-keyword-panel"
+                  />
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+
+            <Button 
+              onClick={onShowGrid}
+              className="w-full"
+              data-testid="button-show-grid"
+            >
+              <Grid3X3 className="w-4 h-4 mr-2" />
+              Show Grid on Map
+            </Button>
           </TabsContent>
         </Tabs>
       </div>
@@ -1653,12 +1709,14 @@ export default function MapPage() {
           currentPosition={getCurrentPosition()}
           onSaveFavorite={handleSaveFavorite}
           onGetCurrentLocation={handleGetCurrentLocation}
-          favorites={favorites}
-          isLoadingFavorites={isLoadingFavorites}
-          onDeleteFavorite={(id) => deleteFavoriteMutation.mutate(id)}
           onShowGrid={handleShowGrid}
           businessWebsite={businessWebsite}
           onBusinessWebsiteChange={setBusinessWebsite}
+          gridConfig={gridConfig}
+          onGridConfigChange={handleGridConfigChange}
+          gridPoints={gridPoints}
+          gridKeyword={gridKeyword}
+          onGridKeywordChange={setGridKeyword}
         />
         
         <div className="relative flex-1 h-full" data-testid="map-container">

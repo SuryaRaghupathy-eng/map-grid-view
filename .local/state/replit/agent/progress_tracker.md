@@ -10,3 +10,4 @@
 [x] 10. Final verification - npm install completed and workflow running successfully on port 5000
 [x] 11. Moved keyword search and website filter inputs from Ranking tab to Keywords collapsible section in Local Search Grid panel
 [x] 12. Removed Ranking tab, added Business Website input above Location Search (renamed from Address Search)
+[x] 13. Replaced Favorites tab with Grid Settings tab containing Map Criteria and Keywords sections

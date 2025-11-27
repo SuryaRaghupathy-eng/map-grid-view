@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { coordinateInputSchema, type CoordinateInput, type Favorite } from "@shared/schema";
-import { MapPin, Navigation, Plus, Minus, RotateCcw, Star, Trash2, Locate, Search, Map as MapIcon, Loader2, Grid3X3, ChevronDown, ChevronUp, X, Building2, ExternalLink, Phone, Globe, Trophy, Filter } from "lucide-react";
+import { MapPin, Navigation, Plus, Minus, RotateCcw, Star, Trash2, Locate, Search, Map as MapIcon, Loader2, Grid3X3, ChevronDown, ChevronUp, X, Building2, ExternalLink, Phone, Globe, Trophy, Filter, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -1316,6 +1316,15 @@ function CoordinateInputPanel({
             >
               <Grid3X3 className="w-4 h-4 mr-2" />
               Show Grid on Map
+            </Button>
+
+            <Button 
+              variant="secondary"
+              className="w-full"
+              data-testid="button-generate-report"
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Generate Report
             </Button>
           </TabsContent>
         </Tabs>

@@ -12,3 +12,8 @@
 [x] 12. Removed Ranking tab, added Business Website input above Location Search (renamed from Address Search)
 [x] 13. Replaced Favorites tab with Grid Settings tab containing Map Criteria and Keywords sections
 [x] 14. November 27, 2025 - Configured workflow with webview output type and restarted successfully - application running on port 5000
+[x] 15. Created Report Page - displays keyword and grid point coordinates when "Create Report" button is clicked
+    - Created client/src/pages/report-page.tsx with keyword, grid size, spacing, and coordinates table
+    - Added /report route to App.tsx
+    - Modified handleCreateReport to store data in sessionStorage and navigate to report page
+    - Report page includes CSV export functionality

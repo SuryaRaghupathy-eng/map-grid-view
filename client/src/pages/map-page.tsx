@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, CircleMarker } from "react-leaflet";
 import { LatLngExpression, Icon } from "leaflet";
+import { useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1396,6 +1397,7 @@ function MapControls({
 }
 
 export default function MapPage() {
+  const [, navigate] = useLocation();
   const [mapCenter, setMapCenter] = useState<LatLngExpression>(DEFAULT_CENTER);
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
   const [markerPosition, setMarkerPosition] = useState<LatLngExpression | null>(DEFAULT_CENTER);
@@ -1687,13 +1689,38 @@ export default function MapPage() {
 
   const handleCreateReport = useCallback(() => {
     const selectedPoints = gridPoints.filter(p => p.isSelected);
-    toast({
-      title: "Report Created",
-      description: `Report generated with ${selectedPoints.length} grid points`,
-    });
+    
+    if (selectedPoints.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "No Grid Points",
+        description: "Please select at least one grid point",
+      });
+      return;
+    }
+
+    const currentPos = getCurrentPosition();
+    
+    const reportData = {
+      keyword: gridKeyword,
+      websiteFilter: gridWebsiteFilter,
+      gridPoints: gridPoints,
+      centerLocation: currentPos,
+      gridConfig: {
+        distanceUnit: gridConfig.distanceUnit,
+        spacing: gridConfig.spacing,
+        gridSize: gridConfig.gridSize,
+      },
+      createdAt: new Date().toISOString(),
+    };
+
+    sessionStorage.setItem("reportData", JSON.stringify(reportData));
+    
     setGridConfig(prev => ({ ...prev, enabled: false }));
     setGridPoints([]);
-  }, [gridPoints, toast]);
+    
+    navigate("/report");
+  }, [gridPoints, gridKeyword, gridWebsiteFilter, gridConfig, navigate, toast]);
 
   const handleCancelGrid = useCallback(() => {
     setGridConfig(prev => ({ ...prev, enabled: false }));

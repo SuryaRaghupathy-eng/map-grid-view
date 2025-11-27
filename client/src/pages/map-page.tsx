@@ -810,6 +810,7 @@ function CoordinateInputPanel({
   onSaveFavorite,
   onGetCurrentLocation,
   onShowGrid,
+  onCreateReport,
   businessWebsite,
   onBusinessWebsiteChange,
   gridConfig,
@@ -817,12 +818,15 @@ function CoordinateInputPanel({
   gridPoints,
   gridKeyword,
   onGridKeywordChange,
+  activeTab,
+  onActiveTabChange,
 }: {
   onNavigate: (lat: number, lng: number) => void;
   currentPosition: { lat: number; lng: number; address?: string } | null;
   onSaveFavorite: () => void;
   onGetCurrentLocation: () => void;
   onShowGrid: () => void;
+  onCreateReport: () => void;
   businessWebsite: string;
   onBusinessWebsiteChange: (value: string) => void;
   gridConfig: GridConfig;
@@ -830,6 +834,8 @@ function CoordinateInputPanel({
   gridPoints: GridPoint[];
   gridKeyword: string;
   onGridKeywordChange: (value: string) => void;
+  activeTab: string;
+  onActiveTabChange: (tab: string) => void;
 }) {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
@@ -888,6 +894,7 @@ function CoordinateInputPanel({
           description: result.display_name,
         });
         setSearchQuery("");
+        onActiveTabChange("favorites");
       } else {
         toast({
           variant: "destructive",
@@ -912,6 +919,7 @@ function CoordinateInputPanel({
         title: "Navigation Successful",
         description: `Navigated to ${data.latitude.toFixed(6)}°, ${data.longitude.toFixed(6)}°`,
       });
+      onActiveTabChange("favorites");
     } catch (error) {
       toast({
         variant: "destructive",
@@ -943,6 +951,7 @@ function CoordinateInputPanel({
       title: "Location Found",
       description: suggestion.display_name,
     });
+    onActiveTabChange("favorites");
   };
 
   useEffect(() => {
@@ -968,7 +977,7 @@ function CoordinateInputPanel({
           </p>
         </div>
 
-        <Tabs defaultValue="coordinates" className="w-full">
+        <Tabs value={activeTab} onValueChange={onActiveTabChange} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="coordinates">Coordinates</TabsTrigger>
             <TabsTrigger value="favorites">
@@ -1320,6 +1329,7 @@ function CoordinateInputPanel({
             </Button>
 
             <Button 
+              onClick={onCreateReport}
               variant="secondary"
               className="w-full"
               data-testid="button-generate-report"
@@ -1404,6 +1414,7 @@ export default function MapPage() {
   const [currentAddress, setCurrentAddress] = useState<string | undefined>(undefined);
   const [mapStyle, setMapStyle] = useState<keyof typeof MAP_STYLES>("street");
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("coordinates");
   const [gridConfig, setGridConfig] = useState<GridConfig>({
     enabled: false,
     distanceUnit: "miles",
@@ -1746,6 +1757,7 @@ export default function MapPage() {
           onSaveFavorite={handleSaveFavorite}
           onGetCurrentLocation={handleGetCurrentLocation}
           onShowGrid={handleShowGrid}
+          onCreateReport={handleCreateReport}
           businessWebsite={businessWebsite}
           onBusinessWebsiteChange={setBusinessWebsite}
           gridConfig={gridConfig}
@@ -1753,6 +1765,8 @@ export default function MapPage() {
           gridPoints={gridPoints}
           gridKeyword={gridKeyword}
           onGridKeywordChange={setGridKeyword}
+          activeTab={activeTab}
+          onActiveTabChange={setActiveTab}
         />
         
         <div className="relative flex-1 h-full" data-testid="map-container">

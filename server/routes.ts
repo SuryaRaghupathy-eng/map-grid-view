@@ -433,7 +433,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const extractDomain = (url: string | undefined): string => {
+      const normalizeWebsite = (url: string | undefined): string => {
         if (!url) return '';
         return url
           .toLowerCase()
@@ -444,37 +444,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .split('?')[0];
       };
 
-      const domainsMatch = (domain1: string, domain2: string): boolean => {
-        if (!domain1 || !domain2) return false;
-        
-        if (domain1 === domain2) return true;
-        
-        if (domain1.endsWith('.' + domain2) || domain2.endsWith('.' + domain1)) return true;
-        
-        const parts1 = domain1.split('.');
-        const parts2 = domain2.split('.');
-        
-        if (parts1.length >= 2 && parts2.length >= 2) {
-          const main1 = parts1.slice(-2).join('.');
-          const main2 = parts2.slice(-2).join('.');
-          
-          if (parts1.length >= 3 && parts1[parts1.length - 2].length <= 3) {
-            const mainWithTld1 = parts1.slice(-3).join('.');
-            if (mainWithTld1 === domain2 || domain2.endsWith('.' + mainWithTld1)) return true;
-          }
-          if (parts2.length >= 3 && parts2[parts2.length - 2].length <= 3) {
-            const mainWithTld2 = parts2.slice(-3).join('.');
-            if (mainWithTld2 === domain1 || domain1.endsWith('.' + mainWithTld2)) return true;
-          }
-          
-          if (main1 === main2) return true;
-        }
-        
-        return false;
-      };
-
-      const targetDomain = extractDomain(targetWebsite);
-      console.log(`Target domain extracted: "${targetDomain}" from "${targetWebsite}"`);
+      const targetDomain = normalizeWebsite(targetWebsite);
 
       const searchGridPoint = async (point: { id: string; lat: number; lng: number; row: number; col: number }) => {
         try {
@@ -521,10 +491,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           if (targetDomain && places.length > 0) {
             for (let i = 0; i < places.length; i++) {
-              const placeWebsite = places[i].website;
-              const placeDomain = extractDomain(placeWebsite);
-              
-              if (placeDomain && domainsMatch(targetDomain, placeDomain)) {
+              const placeDomain = normalizeWebsite(places[i].website);
+              if (placeDomain && (placeDomain.includes(targetDomain) || targetDomain.includes(placeDomain))) {
                 rank = places[i].position || (i + 1);
                 matchedPlace = {
                   position: places[i].position,
@@ -538,7 +506,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   latitude: places[i].latitude,
                   longitude: places[i].longitude,
                 };
-                console.log(`Point ${point.id}: Found target "${placeDomain}" matching "${targetDomain}" at rank ${rank}`);
+                console.log(`Point ${point.id}: Found target at rank ${rank}`);
                 break;
               }
             }

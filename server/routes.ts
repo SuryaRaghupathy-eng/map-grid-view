@@ -409,6 +409,194 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/grid-search", async (req, res) => {
+    try {
+      const { gridPoints, keyword, targetWebsite } = req.body;
+      
+      if (!gridPoints || !Array.isArray(gridPoints) || gridPoints.length === 0) {
+        return res.status(400).json({
+          error: "Missing or invalid grid points",
+        });
+      }
+
+      if (!keyword || typeof keyword !== 'string') {
+        return res.status(400).json({
+          error: "Missing search keyword",
+        });
+      }
+
+      const SERPER_API_KEY = process.env.SERPER_API_KEY;
+      
+      if (!SERPER_API_KEY) {
+        return res.status(500).json({
+          error: "Serper API key not configured",
+        });
+      }
+
+      const normalizeWebsite = (url: string | undefined): string => {
+        if (!url) return '';
+        return url
+          .toLowerCase()
+          .replace(/^https?:\/\//, '')
+          .replace(/^www\./, '')
+          .replace(/\/$/, '')
+          .split('/')[0]
+          .split('?')[0];
+      };
+
+      const targetDomain = normalizeWebsite(targetWebsite);
+
+      const searchGridPoint = async (point: { id: string; lat: number; lng: number; row: number; col: number }) => {
+        try {
+          const payload = {
+            q: keyword,
+            ll: `@${point.lat},${point.lng},14z`,
+            num: 20,
+          };
+
+          console.log(`Searching point ${point.id}: ${JSON.stringify(payload)}`);
+
+          const response = await fetch("https://google.serper.dev/maps", {
+            method: "POST",
+            headers: {
+              "X-API-KEY": SERPER_API_KEY,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Serper API error for point ${point.id}:`, errorText);
+            return {
+              pointId: point.id,
+              lat: point.lat,
+              lng: point.lng,
+              row: point.row,
+              col: point.col,
+              rank: null,
+              matchedPlace: null,
+              places: [],
+              error: `API error: ${response.status}`,
+            };
+          }
+
+          const data = await response.json();
+          const places = data.places || [];
+
+          console.log(`Point ${point.id}: Found ${places.length} places`);
+
+          let rank: number | null = null;
+          let matchedPlace: any = null;
+
+          if (targetDomain && places.length > 0) {
+            for (let i = 0; i < places.length; i++) {
+              const placeDomain = normalizeWebsite(places[i].website);
+              if (placeDomain && (placeDomain.includes(targetDomain) || targetDomain.includes(placeDomain))) {
+                rank = places[i].position || (i + 1);
+                matchedPlace = {
+                  position: places[i].position,
+                  title: places[i].title,
+                  address: places[i].address,
+                  rating: places[i].rating,
+                  ratingCount: places[i].ratingCount,
+                  type: places[i].type,
+                  website: places[i].website,
+                  phoneNumber: places[i].phoneNumber,
+                  latitude: places[i].latitude,
+                  longitude: places[i].longitude,
+                };
+                console.log(`Point ${point.id}: Found target at rank ${rank}`);
+                break;
+              }
+            }
+          }
+
+          return {
+            pointId: point.id,
+            lat: point.lat,
+            lng: point.lng,
+            row: point.row,
+            col: point.col,
+            rank,
+            matchedPlace,
+            places: places.slice(0, 20).map((p: any) => ({
+              position: p.position || 0,
+              title: p.title || "",
+              address: p.address || "",
+              rating: p.rating,
+              ratingCount: p.ratingCount,
+              type: p.type || "",
+              website: p.website || "",
+              phoneNumber: p.phoneNumber || "",
+              latitude: p.latitude,
+              longitude: p.longitude,
+            })),
+          };
+        } catch (error: any) {
+          console.error(`Error searching point ${point.id}:`, error);
+          return {
+            pointId: point.id,
+            lat: point.lat,
+            lng: point.lng,
+            row: point.row,
+            col: point.col,
+            rank: null,
+            matchedPlace: null,
+            places: [],
+            error: error?.message || "Unknown error",
+          };
+        }
+      };
+
+      const batchSize = 5;
+      const results: any[] = [];
+      
+      for (let i = 0; i < gridPoints.length; i += batchSize) {
+        const batch = gridPoints.slice(i, i + batchSize);
+        const batchResults = await Promise.all(batch.map(searchGridPoint));
+        results.push(...batchResults);
+        
+        if (i + batchSize < gridPoints.length) {
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+      }
+
+      const rankedResults = results.filter(r => r.rank !== null);
+      const avgRank = rankedResults.length > 0
+        ? rankedResults.reduce((sum, r) => sum + r.rank, 0) / rankedResults.length
+        : null;
+      
+      const top3Count = rankedResults.filter(r => r.rank <= 3).length;
+      const top10Count = rankedResults.filter(r => r.rank <= 10).length;
+      const top20Count = rankedResults.filter(r => r.rank <= 20).length;
+
+      return res.json({
+        keyword,
+        targetWebsite,
+        totalPoints: gridPoints.length,
+        summary: {
+          avgRank: avgRank ? Math.round(avgRank * 10) / 10 : null,
+          foundCount: rankedResults.length,
+          notFoundCount: gridPoints.length - rankedResults.length,
+          top3Count,
+          top3Percent: Math.round((top3Count / gridPoints.length) * 100),
+          top10Count,
+          top10Percent: Math.round((top10Count / gridPoints.length) * 100),
+          top20Count,
+          top20Percent: Math.round((top20Count / gridPoints.length) * 100),
+        },
+        results,
+      });
+    } catch (error: any) {
+      console.error("Grid search error:", error);
+      return res.status(500).json({
+        error: "Failed to perform grid search",
+        details: error?.message,
+      });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

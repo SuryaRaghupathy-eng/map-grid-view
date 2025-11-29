@@ -1424,7 +1424,6 @@ export default function MapPage() {
   const [gridPoints, setGridPoints] = useState<GridPoint[]>([]);
   const [businessPlaces, setBusinessPlaces] = useState<PlaceResult[]>([]);
   const [gridKeyword, setGridKeyword] = useState("");
-  const [gridWebsiteFilter, setGridWebsiteFilter] = useState("");
   const [businessWebsite, setBusinessWebsite] = useState("");
   const mapRef = useRef<any>(null);
   const { toast } = useToast();
@@ -1710,11 +1709,31 @@ export default function MapPage() {
       return;
     }
 
+    if (!businessWebsite.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Business Website Required",
+        description: "Please enter your business website to track rankings",
+      });
+      setActiveTab("coordinates");
+      return;
+    }
+
+    if (!gridKeyword.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Keyword Required",
+        description: "Please enter a keyword to search for",
+      });
+      setActiveTab("grid");
+      return;
+    }
+
     const currentPos = getCurrentPosition();
     
     const reportData = {
       keyword: gridKeyword,
-      websiteFilter: gridWebsiteFilter,
+      websiteFilter: businessWebsite,
       gridPoints: gridPoints,
       centerLocation: currentPos,
       gridConfig: {
@@ -1731,7 +1750,7 @@ export default function MapPage() {
     setGridPoints([]);
     
     navigate("/report");
-  }, [gridPoints, gridKeyword, gridWebsiteFilter, gridConfig, navigate, toast]);
+  }, [gridPoints, gridKeyword, businessWebsite, gridConfig, navigate, toast, setActiveTab]);
 
   const handleCancelGrid = useCallback(() => {
     setGridConfig(prev => ({ ...prev, enabled: false }));
@@ -1930,8 +1949,8 @@ export default function MapPage() {
               centerLocation={getCurrentPosition()}
               keyword={gridKeyword}
               onKeywordChange={setGridKeyword}
-              websiteFilter={gridWebsiteFilter}
-              onWebsiteFilterChange={setGridWebsiteFilter}
+              websiteFilter={businessWebsite}
+              onWebsiteFilterChange={setBusinessWebsite}
             />
           )}
         </div>

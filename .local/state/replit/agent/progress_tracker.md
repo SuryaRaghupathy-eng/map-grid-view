@@ -43,3 +43,10 @@
     - Verified UI with screenshot - Map Navigator fully functional
     - All features operational: coordinates navigation, location search, grid settings, favorites
     - Import process completed successfully
+[x] 20. November 29, 2025 - Fixed Business Website Integration for Reports
+    - Fixed report to use Business Website from main Coordinates tab instead of separate grid filter
+    - Business Website is now synced between Coordinates tab and Grid Settings panel
+    - Added validation to require both Business Website and Keyword before generating report
+    - Removed redundant gridWebsiteFilter state variable
+    - Report now properly tracks the ranking position of the entered business website
+    - Flow: Enter website in Coordinates tab -> Enter keyword in Grid Settings -> Generate Report

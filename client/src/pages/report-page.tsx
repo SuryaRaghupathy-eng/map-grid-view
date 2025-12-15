@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,10 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, FileText, MapPin, Grid3X3, Download, TrendingUp, TrendingDown, Target, Globe, Phone, Star, Building2, Loader2, AlertCircle } from "lucide-react";
+import { ArrowLeft, FileText, MapPin, Grid3X3, Download, TrendingUp, TrendingDown, Target, Globe, Phone, Star, Building2, Loader2, AlertCircle, Map } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
 
 interface GridPoint {
   id: string;
@@ -80,6 +82,14 @@ interface ReportData {
 }
 
 function getRankColor(rank: number | null): string {
+  if (rank === null) return "#9CA3AF"; // gray
+  if (rank <= 3) return "#22C55E"; // green
+  if (rank <= 10) return "#F59E0B"; // yellow/amber
+  if (rank <= 20) return "#F97316"; // orange
+  return "#EF4444"; // red
+}
+
+function getRankBgClass(rank: number | null): string {
   if (rank === null) return "bg-gray-400 dark:bg-gray-600";
   if (rank <= 3) return "bg-green-500 dark:bg-green-600";
   if (rank <= 10) return "bg-yellow-500 dark:bg-yellow-600";
@@ -102,6 +112,19 @@ function getRankBadgeVariant(rank: number | null): "default" | "secondary" | "de
   return "destructive";
 }
 
+function MapBoundsUpdater({ results }: { results: GridSearchResult[] }) {
+  const map = useMap();
+  
+  useEffect(() => {
+    if (results.length > 0) {
+      const bounds = results.map(r => [r.lat, r.lng] as [number, number]);
+      map.fitBounds(bounds, { padding: [50, 50] });
+    }
+  }, [results, map]);
+  
+  return null;
+}
+
 export default function ReportPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -109,6 +132,7 @@ export default function ReportPage() {
   const [searchResults, setSearchResults] = useState<GridSearchResponse | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [hasStartedSearch, setHasStartedSearch] = useState(false);
+  const [viewMode, setViewMode] = useState<"map" | "grid">("map");
   
   const storedData = sessionStorage.getItem("reportData");
   const reportData: ReportData | null = storedData ? JSON.parse(storedData) : null;
@@ -282,7 +306,7 @@ export default function ReportPage() {
             className={`
               w-10 h-10 md:w-12 md:h-12 rounded-md flex items-center justify-center text-sm font-bold
               transition-all cursor-pointer
-              ${getRankColor(rank)}
+              ${getRankBgClass(rank)}
               ${isCenter ? "ring-2 ring-blue-600 ring-offset-2" : ""}
               ${result ? "hover:scale-110" : "opacity-50"}
               text-white
@@ -295,7 +319,7 @@ export default function ReportPage() {
             ) : rank !== null ? (
               rank
             ) : result ? (
-              <X className="w-4 h-4" />
+              <XIcon className="w-4 h-4" />
             ) : (
               "-"
             )}
@@ -311,8 +335,14 @@ export default function ReportPage() {
     return rows;
   };
 
+  const defaultCenter = centerPoint 
+    ? { lat: centerPoint.lat, lng: centerPoint.lng }
+    : reportData.centerLocation 
+    ? { lat: reportData.centerLocation.lat, lng: reportData.centerLocation.lng }
+    : { lat: 52.5, lng: -1.9 }; // Default to UK midlands
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <header className="border-b bg-card sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -335,477 +365,472 @@ export default function ReportPage() {
                 </p>
               </div>
             </div>
-            <Button onClick={handleExportCSV} data-testid="button-export-csv">
-              <Download className="w-4 h-4 mr-2" />
-              Export CSV
-            </Button>
+            <div className="flex items-center gap-2">
+              <div className="flex border rounded-md">
+                <Button 
+                  variant={viewMode === "map" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("map")}
+                  data-testid="button-view-map"
+                >
+                  <Map className="w-4 h-4 mr-1" />
+                  Map
+                </Button>
+                <Button 
+                  variant={viewMode === "grid" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("grid")}
+                  data-testid="button-view-grid"
+                >
+                  <Grid3X3 className="w-4 h-4 mr-1" />
+                  Grid
+                </Button>
+              </div>
+              <Button onClick={handleExportCSV} data-testid="button-export-csv">
+                <Download className="w-4 h-4 mr-2" />
+                Export CSV
+              </Button>
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6 space-y-6">
+      <main className="flex-1 flex flex-col">
         {isSearching && (
-          <Card className="p-6">
-            <div className="flex items-center justify-center gap-4">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              <div>
-                <h3 className="font-semibold">Searching Grid Points...</h3>
-                <p className="text-sm text-muted-foreground">
-                  Checking rankings for "{reportData.keyword}" across {selectedPoints.length} locations
-                </p>
+          <div className="container mx-auto px-4 py-4">
+            <Card className="p-6">
+              <div className="flex items-center justify-center gap-4">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <div>
+                  <h3 className="font-semibold">Searching Grid Points...</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Checking rankings for "{reportData.keyword}" across {selectedPoints.length} locations
+                  </p>
+                </div>
               </div>
-            </div>
-            <Progress className="mt-4" value={33} />
-          </Card>
+              <Progress className="mt-4" value={33} />
+            </Card>
+          </div>
         )}
 
         {searchResults && (
           <>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              <Card className="p-4">
-                <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-                  <TrendingUp className="w-4 h-4" />
-                  Avg Rank
-                </div>
-                <p className={`font-bold text-2xl ${getRankTextColor(searchResults.summary.avgRank)}`} data-testid="text-avg-rank">
-                  {searchResults.summary.avgRank || "N/A"}
-                </p>
-              </Card>
+            <div className="container mx-auto px-4 py-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                <Card className="p-4">
+                  <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                    <TrendingUp className="w-4 h-4" />
+                    Avg Rank
+                  </div>
+                  <p className={`font-bold text-2xl ${getRankTextColor(searchResults.summary.avgRank)}`} data-testid="text-avg-rank">
+                    {searchResults.summary.avgRank || "N/A"}
+                  </p>
+                </Card>
 
-              <Card className="p-4">
-                <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-                  <Target className="w-4 h-4" />
-                  Found
-                </div>
-                <p className="font-bold text-2xl text-green-600 dark:text-green-400" data-testid="text-found-count">
-                  {searchResults.summary.foundCount}/{searchResults.totalPoints}
-                </p>
-              </Card>
+                <Card className="p-4">
+                  <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                    <Target className="w-4 h-4" />
+                    Found
+                  </div>
+                  <p className="font-bold text-2xl text-green-600 dark:text-green-400" data-testid="text-found-count">
+                    {searchResults.summary.foundCount}/{searchResults.totalPoints}
+                  </p>
+                </Card>
 
-              <Card className="p-4 bg-green-50 dark:bg-green-950">
-                <div className="flex items-center gap-2 text-green-700 dark:text-green-300 text-sm mb-1">
-                  Top 3
-                </div>
-                <p className="font-bold text-2xl text-green-600 dark:text-green-400" data-testid="text-top3">
-                  {searchResults.summary.top3Percent}%
-                </p>
-                <p className="text-xs text-muted-foreground">{searchResults.summary.top3Count} points</p>
-              </Card>
+                <Card className="p-4 bg-green-50 dark:bg-green-950">
+                  <div className="flex items-center gap-2 text-green-700 dark:text-green-300 text-sm mb-1">
+                    Top 3
+                  </div>
+                  <p className="font-bold text-2xl text-green-600 dark:text-green-400" data-testid="text-top3">
+                    {searchResults.summary.top3Percent}%
+                  </p>
+                  <p className="text-xs text-muted-foreground">{searchResults.summary.top3Count} points</p>
+                </Card>
 
-              <Card className="p-4 bg-yellow-50 dark:bg-yellow-950">
-                <div className="flex items-center gap-2 text-yellow-700 dark:text-yellow-300 text-sm mb-1">
-                  Top 10
-                </div>
-                <p className="font-bold text-2xl text-yellow-600 dark:text-yellow-400" data-testid="text-top10">
-                  {searchResults.summary.top10Percent}%
-                </p>
-                <p className="text-xs text-muted-foreground">{searchResults.summary.top10Count} points</p>
-              </Card>
+                <Card className="p-4 bg-yellow-50 dark:bg-yellow-950">
+                  <div className="flex items-center gap-2 text-yellow-700 dark:text-yellow-300 text-sm mb-1">
+                    Top 10
+                  </div>
+                  <p className="font-bold text-2xl text-yellow-600 dark:text-yellow-400" data-testid="text-top10">
+                    {searchResults.summary.top10Percent}%
+                  </p>
+                  <p className="text-xs text-muted-foreground">{searchResults.summary.top10Count} points</p>
+                </Card>
 
-              <Card className="p-4 bg-orange-50 dark:bg-orange-950">
-                <div className="flex items-center gap-2 text-orange-700 dark:text-orange-300 text-sm mb-1">
-                  Top 20
-                </div>
-                <p className="font-bold text-2xl text-orange-600 dark:text-orange-400" data-testid="text-top20">
-                  {searchResults.summary.top20Percent}%
-                </p>
-                <p className="text-xs text-muted-foreground">{searchResults.summary.top20Count} points</p>
-              </Card>
+                <Card className="p-4 bg-orange-50 dark:bg-orange-950">
+                  <div className="flex items-center gap-2 text-orange-700 dark:text-orange-300 text-sm mb-1">
+                    Top 20
+                  </div>
+                  <p className="font-bold text-2xl text-orange-600 dark:text-orange-400" data-testid="text-top20">
+                    {searchResults.summary.top20Percent}%
+                  </p>
+                  <p className="text-xs text-muted-foreground">{searchResults.summary.top20Count} points</p>
+                </Card>
 
-              <Card className="p-4 bg-red-50 dark:bg-red-950">
-                <div className="flex items-center gap-2 text-red-700 dark:text-red-300 text-sm mb-1">
-                  Not Found
-                </div>
-                <p className="font-bold text-2xl text-red-600 dark:text-red-400" data-testid="text-not-found">
-                  {searchResults.summary.notFoundCount}
-                </p>
-                <p className="text-xs text-muted-foreground">points</p>
-              </Card>
+                <Card className="p-4 bg-red-50 dark:bg-red-950">
+                  <div className="flex items-center gap-2 text-red-700 dark:text-red-300 text-sm mb-1">
+                    Not Found
+                  </div>
+                  <p className="font-bold text-2xl text-red-600 dark:text-red-400" data-testid="text-not-found">
+                    {searchResults.summary.notFoundCount}
+                  </p>
+                  <p className="text-xs text-muted-foreground">points</p>
+                </Card>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="p-6">
-                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Grid3X3 className="w-5 h-5" />
-                  Ranking Grid
-                </h2>
-                <div className="flex flex-col gap-1 md:gap-2 items-center">
-                  {renderGridVisualization()}
-                </div>
-                <div className="mt-4 flex flex-wrap gap-3 justify-center text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded bg-green-500"></div>
-                    <span>Top 3</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded bg-yellow-500"></div>
-                    <span>4-10</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded bg-orange-500"></div>
-                    <span>11-20</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded bg-red-500"></div>
-                    <span>21+</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded bg-gray-400"></div>
-                    <span>Not Found</span>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground text-center mt-2">
-                  Click on a cell to see detailed results for that location
-                </p>
-              </Card>
-
-              <Card className="p-6">
-                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Building2 className="w-5 h-5" />
-                  {selectedPoint ? "Location Details" : "Select a Grid Point"}
-                </h2>
-                {selectedPoint ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Grid Position</p>
-                        <p className="font-medium">Row {selectedPoint.row}, Col {selectedPoint.col}</p>
-                      </div>
-                      <Badge variant={getRankBadgeVariant(selectedPoint.rank)}>
-                        {selectedPoint.rank ? `Rank #${selectedPoint.rank}` : "Not Found"}
-                      </Badge>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Coordinates</p>
-                      <p className="font-mono text-sm">
-                        {selectedPoint.lat.toFixed(6)}, {selectedPoint.lng.toFixed(6)}
-                      </p>
-                    </div>
-                    {selectedPoint.matchedPlace && (
-                      <div className="border-t pt-4 space-y-3">
-                        <h4 className="font-semibold text-green-600 dark:text-green-400">
-                          Target Business Found
-                        </h4>
-                        <div>
-                          <p className="font-medium">{selectedPoint.matchedPlace.title}</p>
-                          <p className="text-sm text-muted-foreground">{selectedPoint.matchedPlace.address}</p>
-                        </div>
-                        {selectedPoint.matchedPlace.rating && (
-                          <div className="flex items-center gap-2">
-                            <Star className="w-4 h-4 text-yellow-500" />
-                            <span>{selectedPoint.matchedPlace.rating}</span>
-                            <span className="text-muted-foreground">
-                              ({selectedPoint.matchedPlace.ratingCount} reviews)
-                            </span>
-                          </div>
-                        )}
-                        {selectedPoint.matchedPlace.website && (
-                          <a 
-                            href={selectedPoint.matchedPlace.website}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 text-primary hover:underline text-sm"
-                          >
-                            <Globe className="w-4 h-4" />
-                            Visit Website
-                          </a>
-                        )}
-                        {selectedPoint.matchedPlace.phoneNumber && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <Phone className="w-4 h-4" />
-                            {selectedPoint.matchedPlace.phoneNumber}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {selectedPoint.places.length > 0 && (
-                      <div className="border-t pt-4">
-                        <h4 className="font-semibold mb-2">Top Results at This Location</h4>
-                        <ScrollArea className="h-48">
-                          <div className="space-y-2">
-                            {selectedPoint.places.slice(0, 10).map((place, idx) => (
-                              <div 
-                                key={idx} 
-                                className={`p-2 rounded text-sm ${
-                                  place.position === selectedPoint.rank 
-                                    ? "bg-green-100 dark:bg-green-900 border border-green-500" 
-                                    : "bg-muted/50"
-                                }`}
-                              >
-                                <div className="flex items-center justify-between">
-                                  <span className="font-medium">#{place.position} {place.title}</span>
-                                  {place.rating && (
-                                    <span className="flex items-center gap-1 text-xs">
-                                      <Star className="w-3 h-3 text-yellow-500" />
-                                      {place.rating}
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="text-xs text-muted-foreground truncate">{place.address}</p>
+            {viewMode === "map" ? (
+              <div className="flex-1 flex">
+                <div className="flex-1 relative">
+                  <MapContainer
+                    center={[defaultCenter.lat, defaultCenter.lng]}
+                    zoom={10}
+                    className="h-full w-full min-h-[500px]"
+                    style={{ height: "calc(100vh - 280px)" }}
+                  >
+                    <TileLayer
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    <MapBoundsUpdater results={searchResults.results} />
+                    
+                    {searchResults.results.map((result) => {
+                      const isCenter = centerPoint && result.lat === centerPoint.lat && result.lng === centerPoint.lng;
+                      return (
+                        <CircleMarker
+                          key={result.pointId}
+                          center={[result.lat, result.lng]}
+                          radius={isCenter ? 18 : 16}
+                          pathOptions={{
+                            fillColor: getRankColor(result.rank),
+                            fillOpacity: 0.9,
+                            color: isCenter ? "#3B82F6" : "#FFFFFF",
+                            weight: isCenter ? 3 : 2,
+                          }}
+                          eventHandlers={{
+                            click: () => setSelectedPoint(result),
+                          }}
+                        >
+                          <Popup>
+                            <div className="text-center min-w-[150px]">
+                              <div className="font-bold text-lg mb-1">
+                                {result.rank !== null ? `Rank #${result.rank}` : "Not Found"}
                               </div>
-                            ))}
+                              {result.matchedPlace && (
+                                <div className="text-sm">
+                                  <p className="font-medium">{result.matchedPlace.title}</p>
+                                  <p className="text-muted-foreground text-xs">{result.matchedPlace.address}</p>
+                                </div>
+                              )}
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {result.lat.toFixed(4)}, {result.lng.toFixed(4)}
+                              </p>
+                            </div>
+                          </Popup>
+                        </CircleMarker>
+                      );
+                    })}
+                  </MapContainer>
+                  
+                  {/* Rank number overlay using CSS */}
+                  <style>{`
+                    .leaflet-interactive {
+                      cursor: pointer;
+                    }
+                  `}</style>
+                  
+                  {/* Custom rank labels */}
+                  <div className="absolute bottom-4 left-4 bg-card/90 backdrop-blur-sm rounded-lg p-3 z-[1000]">
+                    <div className="flex flex-wrap gap-3 text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded-full bg-green-500"></div>
+                        <span>Top 3</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded-full bg-yellow-500"></div>
+                        <span>4-10</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded-full bg-orange-500"></div>
+                        <span>11-20</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded-full bg-red-500"></div>
+                        <span>21+</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded-full bg-gray-400"></div>
+                        <span>Not Found</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Details sidebar */}
+                <div className="w-80 border-l bg-card p-4 overflow-auto">
+                  <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Building2 className="w-5 h-5" />
+                    {selectedPoint ? "Location Details" : "Select a Point"}
+                  </h2>
+                  {selectedPoint ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Grid Position</p>
+                          <p className="font-medium">Row {selectedPoint.row}, Col {selectedPoint.col}</p>
+                        </div>
+                        <Badge variant={getRankBadgeVariant(selectedPoint.rank)}>
+                          {selectedPoint.rank ? `Rank #${selectedPoint.rank}` : "Not Found"}
+                        </Badge>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Coordinates</p>
+                        <p className="font-mono text-sm">
+                          {selectedPoint.lat.toFixed(6)}, {selectedPoint.lng.toFixed(6)}
+                        </p>
+                      </div>
+                      {selectedPoint.matchedPlace && (
+                        <div className="border-t pt-4 space-y-3">
+                          <h4 className="font-semibold text-green-600 dark:text-green-400">
+                            Target Business Found
+                          </h4>
+                          <div>
+                            <p className="font-medium">{selectedPoint.matchedPlace.title}</p>
+                            <p className="text-sm text-muted-foreground">{selectedPoint.matchedPlace.address}</p>
                           </div>
-                        </ScrollArea>
+                          {selectedPoint.matchedPlace.rating && (
+                            <div className="flex items-center gap-2">
+                              <Star className="w-4 h-4 text-yellow-500" />
+                              <span>{selectedPoint.matchedPlace.rating}</span>
+                              <span className="text-muted-foreground">
+                                ({selectedPoint.matchedPlace.ratingCount} reviews)
+                              </span>
+                            </div>
+                          )}
+                          {selectedPoint.matchedPlace.website && (
+                            <a 
+                              href={selectedPoint.matchedPlace.website}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 text-primary hover:underline text-sm"
+                            >
+                              <Globe className="w-4 h-4" />
+                              Visit Website
+                            </a>
+                          )}
+                          {selectedPoint.matchedPlace.phoneNumber && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <Phone className="w-4 h-4" />
+                              {selectedPoint.matchedPlace.phoneNumber}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {selectedPoint.places.length > 0 && (
+                        <div className="border-t pt-4">
+                          <h4 className="font-semibold mb-2">Top Results at This Location</h4>
+                          <ScrollArea className="h-48">
+                            <div className="space-y-2">
+                              {selectedPoint.places.slice(0, 10).map((place, idx) => (
+                                <div 
+                                  key={idx} 
+                                  className={`p-2 rounded text-sm ${
+                                    place.position === selectedPoint.rank 
+                                      ? "bg-green-100 dark:bg-green-900 border border-green-500" 
+                                      : "bg-muted/50"
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-medium">#{place.position} {place.title}</span>
+                                    {place.rating && (
+                                      <span className="flex items-center gap-1 text-xs">
+                                        <Star className="w-3 h-3 text-yellow-500" />
+                                        {place.rating}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-muted-foreground truncate">{place.address}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </ScrollArea>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-48 text-muted-foreground">
+                      <MapPin className="w-12 h-12 mb-4" />
+                      <p className="text-center">Click on a circle on the map to view details</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="container mx-auto px-4 py-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <Card className="p-6">
+                    <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <Grid3X3 className="w-5 h-5" />
+                      Ranking Grid
+                    </h2>
+                    <div className="flex flex-col gap-1 md:gap-2 items-center">
+                      {renderGridVisualization()}
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-3 justify-center text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded bg-green-500"></div>
+                        <span>Top 3</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded bg-yellow-500"></div>
+                        <span>4-10</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded bg-orange-500"></div>
+                        <span>11-20</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded bg-red-500"></div>
+                        <span>21+</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded bg-gray-400"></div>
+                        <span>Not Found</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground text-center mt-2">
+                      Click on a cell to see detailed results for that location
+                    </p>
+                  </Card>
+
+                  <Card className="p-6">
+                    <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <Building2 className="w-5 h-5" />
+                      {selectedPoint ? "Location Details" : "Select a Grid Point"}
+                    </h2>
+                    {selectedPoint ? (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm text-muted-foreground">Grid Position</p>
+                            <p className="font-medium">Row {selectedPoint.row}, Col {selectedPoint.col}</p>
+                          </div>
+                          <Badge variant={getRankBadgeVariant(selectedPoint.rank)}>
+                            {selectedPoint.rank ? `Rank #${selectedPoint.rank}` : "Not Found"}
+                          </Badge>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Coordinates</p>
+                          <p className="font-mono text-sm">
+                            {selectedPoint.lat.toFixed(6)}, {selectedPoint.lng.toFixed(6)}
+                          </p>
+                        </div>
+                        {selectedPoint.matchedPlace && (
+                          <div className="border-t pt-4 space-y-3">
+                            <h4 className="font-semibold text-green-600 dark:text-green-400">
+                              Target Business Found
+                            </h4>
+                            <div>
+                              <p className="font-medium">{selectedPoint.matchedPlace.title}</p>
+                              <p className="text-sm text-muted-foreground">{selectedPoint.matchedPlace.address}</p>
+                            </div>
+                            {selectedPoint.matchedPlace.rating && (
+                              <div className="flex items-center gap-2">
+                                <Star className="w-4 h-4 text-yellow-500" />
+                                <span>{selectedPoint.matchedPlace.rating}</span>
+                                <span className="text-muted-foreground">
+                                  ({selectedPoint.matchedPlace.ratingCount} reviews)
+                                </span>
+                              </div>
+                            )}
+                            {selectedPoint.matchedPlace.website && (
+                              <a 
+                                href={selectedPoint.matchedPlace.website}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 text-primary hover:underline text-sm"
+                              >
+                                <Globe className="w-4 h-4" />
+                                Visit Website
+                              </a>
+                            )}
+                            {selectedPoint.matchedPlace.phoneNumber && (
+                              <div className="flex items-center gap-2 text-sm">
+                                <Phone className="w-4 h-4" />
+                                {selectedPoint.matchedPlace.phoneNumber}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {selectedPoint.places.length > 0 && (
+                          <div className="border-t pt-4">
+                            <h4 className="font-semibold mb-2">Top Results at This Location</h4>
+                            <ScrollArea className="h-48">
+                              <div className="space-y-2">
+                                {selectedPoint.places.slice(0, 10).map((place, idx) => (
+                                  <div 
+                                    key={idx} 
+                                    className={`p-2 rounded text-sm ${
+                                      place.position === selectedPoint.rank 
+                                        ? "bg-green-100 dark:bg-green-900 border border-green-500" 
+                                        : "bg-muted/50"
+                                    }`}
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <span className="font-medium">#{place.position} {place.title}</span>
+                                      {place.rating && (
+                                        <span className="flex items-center gap-1 text-xs">
+                                          <Star className="w-3 h-3 text-yellow-500" />
+                                          {place.rating}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground truncate">{place.address}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </ScrollArea>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-48 text-muted-foreground">
+                        <MapPin className="w-12 h-12 mb-4" />
+                        <p>Click on a grid cell to view details</p>
                       </div>
                     )}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-48 text-muted-foreground">
-                    <MapPin className="w-12 h-12 mb-4" />
-                    <p>Click on a grid cell to view details</p>
-                  </div>
-                )}
-              </Card>
-            </div>
+                  </Card>
+                </div>
+              </div>
+            )}
           </>
         )}
 
         {!searchResults && !isSearching && !reportData.keyword && (
-          <Card className="p-6">
-            <div className="flex items-center gap-3 text-yellow-600 dark:text-yellow-400 mb-4">
-              <AlertCircle className="w-6 h-6" />
-              <h3 className="font-semibold">No Keyword Specified</h3>
-            </div>
-            <p className="text-muted-foreground mb-4">
-              To generate a Local Search Grid report with ranking data, please go back and specify a keyword in the Grid Settings.
-            </p>
-            <Button onClick={() => navigate("/")} variant="outline">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Go Back and Add Keyword
-            </Button>
-          </Card>
-        )}
-
-        <Tabs defaultValue="grid" className="w-full">
-          <TabsList>
-            <TabsTrigger value="grid" data-testid="tab-grid-data">Grid Data</TabsTrigger>
-            <TabsTrigger value="all-results" data-testid="tab-all-results">All Results</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="grid">
-            <Card className="p-4">
-              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Grid3X3 className="w-5 h-5" />
-                Grid Point Rankings
-              </h2>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-16">#</TableHead>
-                      <TableHead>Position</TableHead>
-                      <TableHead>Coordinates</TableHead>
-                      <TableHead>Rank</TableHead>
-                      <TableHead>Business</TableHead>
-                      <TableHead className="text-right">Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {selectedPoints.map((point, index) => {
-                      const result = getResultForPoint(point);
-                      return (
-                        <TableRow 
-                          key={point.id} 
-                          data-testid={`row-grid-point-${point.id}`}
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => result && setSelectedPoint(result)}
-                        >
-                          <TableCell className="font-medium">{index + 1}</TableCell>
-                          <TableCell>
-                            Row {point.row}, Col {point.col}
-                          </TableCell>
-                          <TableCell className="font-mono text-sm">
-                            {point.lat.toFixed(6)}, {point.lng.toFixed(6)}
-                          </TableCell>
-                          <TableCell>
-                            {isSearching ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : result?.rank ? (
-                              <span className={`font-bold ${getRankTextColor(result.rank)}`}>
-                                #{result.rank}
-                              </span>
-                            ) : searchResults ? (
-                              <span className="text-muted-foreground">-</span>
-                            ) : null}
-                          </TableCell>
-                          <TableCell className="max-w-xs truncate">
-                            {result?.matchedPlace?.title || "-"}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {point.isCenter ? (
-                              <Badge variant="default">Center</Badge>
-                            ) : result?.rank ? (
-                              <Badge variant={getRankBadgeVariant(result.rank)}>
-                                Found
-                              </Badge>
-                            ) : searchResults ? (
-                              <Badge variant="secondary">Not Found</Badge>
-                            ) : (
-                              <Badge variant="outline">Pending</Badge>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+          <div className="container mx-auto px-4 py-6">
+            <Card className="p-6">
+              <div className="flex items-center gap-4 text-yellow-600 dark:text-yellow-400">
+                <AlertCircle className="w-8 h-8" />
+                <div>
+                  <h3 className="font-semibold">No Keyword Specified</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Please go back and enter a search keyword to generate ranking data.
+                  </p>
+                </div>
               </div>
             </Card>
-          </TabsContent>
-
-          <TabsContent value="all-results">
-            <Card className="p-4">
-              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Building2 className="w-5 h-5" />
-                All Competitors
-              </h2>
-              {searchResults ? (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Business Name</TableHead>
-                        <TableHead>Address</TableHead>
-                        <TableHead>Rating</TableHead>
-                        <TableHead>Appearances</TableHead>
-                        <TableHead>Avg Position</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(() => {
-                        const businessMap = new Map<string, { 
-                          title: string; 
-                          address: string; 
-                          rating?: number; 
-                          ratingCount?: number;
-                          appearances: number; 
-                          totalPosition: number;
-                          website?: string;
-                        }>();
-                        
-                        searchResults.results.forEach(result => {
-                          result.places.forEach(place => {
-                            const key = place.title.toLowerCase();
-                            const existing = businessMap.get(key);
-                            if (existing) {
-                              existing.appearances++;
-                              existing.totalPosition += place.position;
-                            } else {
-                              businessMap.set(key, {
-                                title: place.title,
-                                address: place.address,
-                                rating: place.rating,
-                                ratingCount: place.ratingCount,
-                                appearances: 1,
-                                totalPosition: place.position,
-                                website: place.website,
-                              });
-                            }
-                          });
-                        });
-
-                        const sortedBusinesses = Array.from(businessMap.values())
-                          .sort((a, b) => b.appearances - a.appearances)
-                          .slice(0, 50);
-
-                        return sortedBusinesses.map((business, idx) => (
-                          <TableRow key={idx}>
-                            <TableCell className="font-medium">
-                              {business.title}
-                              {business.website && (
-                                <a 
-                                  href={business.website}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="ml-2 text-primary hover:underline"
-                                >
-                                  <Globe className="w-3 h-3 inline" />
-                                </a>
-                              )}
-                            </TableCell>
-                            <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
-                              {business.address}
-                            </TableCell>
-                            <TableCell>
-                              {business.rating && (
-                                <span className="flex items-center gap-1">
-                                  <Star className="w-3 h-3 text-yellow-500" />
-                                  {business.rating}
-                                  <span className="text-xs text-muted-foreground">
-                                    ({business.ratingCount})
-                                  </span>
-                                </span>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline">{business.appearances}</Badge>
-                            </TableCell>
-                            <TableCell>
-                              <span className={getRankTextColor(Math.round(business.totalPosition / business.appearances))}>
-                                #{(business.totalPosition / business.appearances).toFixed(1)}
-                              </span>
-                            </TableCell>
-                          </TableRow>
-                        ));
-                      })()}
-                    </TableBody>
-                  </Table>
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Building2 className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Run a search to see competitor analysis</p>
-                </div>
-              )}
-            </Card>
-          </TabsContent>
-        </Tabs>
-
-        <Card className="p-4">
-          <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <FileText className="w-5 h-5" />
-            Report Configuration
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div>
-              <p className="text-muted-foreground">Keyword</p>
-              <p className="font-medium">{reportData.keyword || "Not specified"}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Target Website</p>
-              <p className="font-medium">{reportData.websiteFilter || "Not specified"}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Grid Size</p>
-              <p className="font-medium">{reportData.gridConfig.gridSize}x{reportData.gridConfig.gridSize}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Spacing</p>
-              <p className="font-medium">{reportData.gridConfig.spacing} {reportData.gridConfig.distanceUnit}</p>
-            </div>
           </div>
-          {centerPoint && (
-            <div className="mt-4 pt-4 border-t">
-              <p className="text-muted-foreground text-sm mb-1">Center Location</p>
-              <p className="font-mono text-sm">
-                {centerPoint.lat.toFixed(6)}, {centerPoint.lng.toFixed(6)}
-              </p>
-              {reportData.centerLocation?.address && (
-                <p className="text-sm text-muted-foreground mt-1">{reportData.centerLocation.address}</p>
-              )}
-            </div>
-          )}
-        </Card>
+        )}
       </main>
     </div>
   );
 }
 
-function X({ className }: { className?: string }) {
+function XIcon({ className }: { className?: string }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d="M18 6 6 18" />
-      <path d="m6 6 12 12" />
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
     </svg>
   );
 }

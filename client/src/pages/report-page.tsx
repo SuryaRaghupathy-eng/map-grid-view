@@ -482,7 +482,7 @@ export default function ReportPage() {
 
             {viewMode === "map" ? (
               <div className="flex-1 flex">
-                <div className="flex-1 relative">
+                <div className="w-[60%] relative">
                   <MapContainer
                     center={[defaultCenter.lat, defaultCenter.lng]}
                     zoom={10}
@@ -588,7 +588,7 @@ export default function ReportPage() {
                 </div>
                 
                 {/* Details sidebar */}
-                <div className="w-80 border-l bg-card p-4 overflow-auto">
+                <div className="w-[40%] border-l bg-card p-4 overflow-auto">
                   <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                     <Building2 className="w-5 h-5" />
                     {selectedPoint ? "Location Details" : "Select a Point"}

@@ -11,7 +11,8 @@ import { ArrowLeft, FileText, MapPin, Grid3X3, Download, TrendingUp, TrendingDow
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 interface GridPoint {
@@ -496,17 +497,37 @@ export default function ReportPage() {
                     
                     {searchResults.results.map((result) => {
                       const isCenter = centerPoint && result.lat === centerPoint.lat && result.lng === centerPoint.lng;
+                      const color = getRankColor(result.rank);
+                      const size = isCenter ? 36 : 32;
+                      const borderColor = isCenter ? "#3B82F6" : "#FFFFFF";
+                      const borderWidth = isCenter ? 3 : 2;
+                      
+                      const icon = L.divIcon({
+                        className: 'custom-rank-marker',
+                        html: `<div style="
+                          width: ${size}px;
+                          height: ${size}px;
+                          background-color: ${color};
+                          border: ${borderWidth}px solid ${borderColor};
+                          border-radius: 50%;
+                          display: flex;
+                          align-items: center;
+                          justify-content: center;
+                          font-weight: bold;
+                          font-size: ${result.rank !== null && result.rank > 99 ? '10px' : '12px'};
+                          color: white;
+                          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                          cursor: pointer;
+                        ">${result.rank !== null ? result.rank : 'X'}</div>`,
+                        iconSize: [size, size],
+                        iconAnchor: [size / 2, size / 2],
+                      });
+                      
                       return (
-                        <CircleMarker
+                        <Marker
                           key={result.pointId}
-                          center={[result.lat, result.lng]}
-                          radius={isCenter ? 18 : 16}
-                          pathOptions={{
-                            fillColor: getRankColor(result.rank),
-                            fillOpacity: 0.9,
-                            color: isCenter ? "#3B82F6" : "#FFFFFF",
-                            weight: isCenter ? 3 : 2,
-                          }}
+                          position={[result.lat, result.lng]}
+                          icon={icon}
                           eventHandlers={{
                             click: () => setSelectedPoint(result),
                           }}
@@ -527,7 +548,7 @@ export default function ReportPage() {
                               </p>
                             </div>
                           </Popup>
-                        </CircleMarker>
+                        </Marker>
                       );
                     })}
                   </MapContainer>

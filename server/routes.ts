@@ -448,9 +448,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const searchGridPoint = async (point: { id: string; lat: number; lng: number; row: number; col: number }) => {
         try {
+          // Use simple lat, lng format without @ prefix and zoom suffix for better results
           const payload = {
             q: keyword,
-            ll: `@${point.lat},${point.lng},14z`,
+            ll: `${point.lat}, ${point.lng}`,
+            type: "maps",
             num: 20,
           };
 
@@ -485,11 +487,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const places = data.places || [];
 
           console.log(`Point ${point.id}: Found ${places.length} places`);
+          
+          // Log the first few places and their websites for debugging
+          if (places.length > 0) {
+            const websitesFound = places.slice(0, 5).map((p: any, idx: number) => 
+              `${idx + 1}. ${normalizeWebsite(p.website) || 'no-website'} (${p.title?.substring(0, 30)})`
+            ).join(', ');
+            console.log(`Point ${point.id} top websites: ${websitesFound}`);
+          }
 
           let rank: number | null = null;
           let matchedPlace: any = null;
 
           if (targetDomain && places.length > 0) {
+            console.log(`Point ${point.id}: Looking for target domain: "${targetDomain}"`);
             for (let i = 0; i < places.length; i++) {
               const placeDomain = normalizeWebsite(places[i].website);
               if (placeDomain && (placeDomain.includes(targetDomain) || targetDomain.includes(placeDomain))) {

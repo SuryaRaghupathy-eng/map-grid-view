@@ -266,10 +266,6 @@ function GridConfigPanel({
   onCreateReport,
   onCancelGrid,
   centerLocation,
-  keyword,
-  onKeywordChange,
-  websiteFilter,
-  onWebsiteFilterChange,
 }: {
   gridConfig: GridConfig;
   onGridConfigChange: (config: Partial<GridConfig>) => void;
@@ -278,14 +274,9 @@ function GridConfigPanel({
   onCreateReport: () => void;
   onCancelGrid: () => void;
   centerLocation: { lat: number; lng: number; address?: string } | null;
-  keyword: string;
-  onKeywordChange: (value: string) => void;
-  websiteFilter: string;
-  onWebsiteFilterChange: (value: string) => void;
 }) {
   const [mapCriteriaOpen, setMapCriteriaOpen] = useState(true);
   const [locationOpen, setLocationOpen] = useState(false);
-  const [keywordsOpen, setKeywordsOpen] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const selectedCount = gridPoints.filter(p => p.isSelected).length;
@@ -391,40 +382,6 @@ function GridConfigPanel({
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
-
-        <Collapsible open={keywordsOpen} onOpenChange={setKeywordsOpen}>
-          <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium border-b">
-            <span>Keywords</span>
-            {keywordsOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </CollapsibleTrigger>
-          <CollapsibleContent className="pt-3 space-y-3">
-            <div className="space-y-2">
-              <Label className="text-xs">Search Keyword</Label>
-              <Input
-                placeholder="e.g., estate agents in luton"
-                value={keyword}
-                onChange={(e) => onKeywordChange(e.target.value)}
-                data-testid="input-grid-keyword"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs flex items-center gap-2">
-                <Filter className="w-3 h-3" />
-                Track by Website
-              </Label>
-              <Input
-                placeholder="e.g., example.com"
-                value={websiteFilter}
-                onChange={(e) => onWebsiteFilterChange(e.target.value)}
-                data-testid="input-grid-website-filter"
-              />
-              <p className="text-xs text-muted-foreground">
-                Enter your website to find your ranking position
-              </p>
             </div>
           </CollapsibleContent>
         </Collapsible>
@@ -1947,10 +1904,6 @@ export default function MapPage() {
               onCreateReport={handleCreateReport}
               onCancelGrid={handleCancelGrid}
               centerLocation={getCurrentPosition()}
-              keyword={gridKeyword}
-              onKeywordChange={setGridKeyword}
-              websiteFilter={businessWebsite}
-              onWebsiteFilterChange={setBusinessWebsite}
             />
           )}
         </div>

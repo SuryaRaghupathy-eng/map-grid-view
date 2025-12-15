@@ -55,3 +55,8 @@
     - Restarted workflow successfully - application running on port 5000
     - Verified UI with screenshot - Map Navigator fully functional with all features
     - Import process verified and completed successfully
+[x] 22. December 15, 2025 - Removed Keywords section from Grid Settings panel
+    - Removed the duplicate Keywords collapsible section (Search Keyword and Track by Website inputs)
+    - These fields already exist in the Coordinates tab (Business Website) and elsewhere
+    - Cleaned up unused state (keywordsOpen) and props from GridConfigPanel component
+    - Application now has cleaner UI without redundant input fields

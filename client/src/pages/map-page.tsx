@@ -1609,12 +1609,15 @@ export default function MapPage() {
     setGridPoints(points);
     setGridConfig(prev => ({ ...prev, enabled: true }));
     
-    const gridSizeInDegrees = gridConfig.distanceUnit === "miles" 
-      ? (gridConfig.spacing * gridConfig.gridSize * 1609.34) / 111320
-      : (gridConfig.spacing * gridConfig.gridSize) / 111320;
-    
-    const optimalZoom = Math.max(8, Math.min(14, 11 - Math.log2(gridSizeInDegrees * 100)));
-    setZoom(Math.round(optimalZoom));
+    if (mapRef.current && points.length > 0) {
+      const lats = points.map(p => p.lat);
+      const lngs = points.map(p => p.lng);
+      const bounds: [[number, number], [number, number]] = [
+        [Math.min(...lats), Math.min(...lngs)],
+        [Math.max(...lats), Math.max(...lngs)]
+      ];
+      mapRef.current.fitBounds(bounds, { padding: [50, 50] });
+    }
     
     toast({
       title: "Grid Created",

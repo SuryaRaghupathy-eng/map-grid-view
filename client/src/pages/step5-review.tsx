@@ -334,6 +334,17 @@ export default function Step5Review() {
                 </div>
               </div>
 
+              {/* Button */}
+              <Button
+                onClick={handleCreateCampaign}
+                className="w-full h-11 text-sm font-semibold"
+                data-testid="button-create-campaign"
+                disabled={selectedPointIds.size === 0}
+              >
+                Create Campaign
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+
               {/* Description */}
               <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800 space-y-2">
                 <p className="text-xs font-medium">What will happen next?</p>
@@ -344,17 +355,6 @@ export default function Step5Review() {
                   <li>• Generate comprehensive grid report</li>
                 </ul>
               </div>
-
-              {/* Button */}
-              <Button
-                onClick={handleCreateCampaign}
-                className="w-full h-11 text-sm font-semibold mt-auto"
-                data-testid="button-create-campaign"
-                disabled={selectedPointIds.size === 0}
-              >
-                Create Campaign
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
             </div>
           </Card>
         </div>

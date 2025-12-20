@@ -117,3 +117,15 @@
    - Removed flex-1 from individual buttons since they're now in a column
    - Layout matches reference design with counter on left, buttons grouped on right
    - Changes deployed live via hot reload on port 5000
+[x] 51. December 20, 2025 - Verified Deselect All Functionality
+   - Confirmed handleDeselectAll() function correctly clears selectedPointIds
+   - Counter displays "0 / {gridPoints.length}" when all points are deselected
+   - Grid points on map turn gray and lose checkmarks when deselected
+   - Functionality implemented and working correctly in step5-review.tsx
+   - Changes verified and deployed live
+[x] 52. December 20, 2025 - Repositioned Create Campaign CTA Above Instructions
+   - Moved "Create Campaign" button above "What will happen next?" section in step5-review.tsx
+   - Removed `mt-auto` class from button since it no longer anchors to bottom
+   - New order: Grid counter + buttons → Create Campaign CTA → Instructions section
+   - Layout now matches reference design with CTA prominently displayed before instructions
+   - Hot reload deployed successfully - changes live on port 5000

@@ -429,6 +429,17 @@ export default function ReportPage() {
 
                 <Card className="p-4">
                   <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                    <FileText className="w-4 h-4" />
+                    Keyword Count
+                  </div>
+                  <p className="font-bold text-2xl text-blue-600 dark:text-blue-400" data-testid="text-keyword-count">
+                    1
+                  </p>
+                  <p className="text-xs text-muted-foreground">keyword searched</p>
+                </Card>
+
+                <Card className="p-4">
+                  <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
                     <Target className="w-4 h-4" />
                     Found
                   </div>
@@ -439,7 +450,7 @@ export default function ReportPage() {
 
                 <Card className="p-4 bg-green-50 dark:bg-green-950">
                   <div className="flex items-center gap-2 text-green-700 dark:text-green-300 text-sm mb-1">
-                    Top 3
+                    1-3 position
                   </div>
                   <p className="font-bold text-2xl text-green-600 dark:text-green-400" data-testid="text-top3">
                     {searchResults.summary.top3Percent}%
@@ -449,7 +460,7 @@ export default function ReportPage() {
 
                 <Card className="p-4 bg-yellow-50 dark:bg-yellow-950">
                   <div className="flex items-center gap-2 text-yellow-700 dark:text-yellow-300 text-sm mb-1">
-                    Top 10
+                    4-10 position
                   </div>
                   <p className="font-bold text-2xl text-yellow-600 dark:text-yellow-400" data-testid="text-top10">
                     {searchResults.summary.top10Percent}%
@@ -459,7 +470,7 @@ export default function ReportPage() {
 
                 <Card className="p-4 bg-orange-50 dark:bg-orange-950">
                   <div className="flex items-center gap-2 text-orange-700 dark:text-orange-300 text-sm mb-1">
-                    Top 20
+                    11-20 position
                   </div>
                   <p className="font-bold text-2xl text-orange-600 dark:text-orange-400" data-testid="text-top20">
                     {searchResults.summary.top20Percent}%

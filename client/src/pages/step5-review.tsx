@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -97,6 +97,7 @@ function MapBoundsController({ gridPoints }: { gridPoints: GridPoint[] }) {
 export default function Step5Review() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const [selectedPointIds, setSelectedPointIds] = useState<Set<string>>(new Set());
 
   const businessWebsite = sessionStorage.getItem("businessWebsite");
   const selectedLocationStr = sessionStorage.getItem("selectedLocation");
@@ -130,6 +131,10 @@ export default function Step5Review() {
           gridConfig.gridSize,
           gridConfig.distanceUnit
         );
+        // Initialize all points as selected
+        if (selectedPointIds.size === 0) {
+          setSelectedPointIds(new Set(gridPoints.map((p) => p.id)));
+        }
       }
     } catch {
       gridConfig = null;
@@ -143,8 +148,36 @@ export default function Step5Review() {
     }
   }, [businessWebsite, selectedLocation, searchKeyword, gridConfig, setLocation]);
 
+  const togglePointSelection = (pointId: string) => {
+    const newSelected = new Set(selectedPointIds);
+    if (newSelected.has(pointId)) {
+      newSelected.delete(pointId);
+    } else {
+      newSelected.add(pointId);
+    }
+    setSelectedPointIds(newSelected);
+  };
+
+  const handleSelectAll = () => {
+    setSelectedPointIds(new Set(gridPoints.map((p) => p.id)));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedPointIds(new Set());
+  };
+
   const handleGenerateReport = () => {
-    // Store flag to trigger report generation on map page
+    if (selectedPointIds.size === 0) {
+      toast({
+        title: "No points selected",
+        description: "Please select at least one grid point to generate a report.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Store selected point IDs and flag to trigger report generation on map page
+    sessionStorage.setItem("selectedGridPoints", JSON.stringify(Array.from(selectedPointIds)));
     sessionStorage.setItem("generateReportOnLoad", "true");
     setLocation("/map");
   };
@@ -192,13 +225,43 @@ export default function Step5Review() {
                     {gridConfig?.gridSize}x{gridConfig?.gridSize} grid, {gridConfig?.spacing}{gridConfig?.distanceUnit === "miles" ? "mi" : "m"} spacing
                   </p>
                 </div>
+
+                {/* Grid Points Selection Counter */}
+                <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <p className="text-xs text-muted-foreground">Grid Points Selected</p>
+                  <p className="font-bold text-lg text-blue-600 dark:text-blue-400" data-testid="text-selected-count">
+                    {selectedPointIds.size} / {gridPoints.length}
+                  </p>
+                </div>
+              </div>
+
+              {/* Selection Controls */}
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleSelectAll}
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 text-xs"
+                  data-testid="button-select-all"
+                >
+                  Select All
+                </Button>
+                <Button
+                  onClick={handleDeselectAll}
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 text-xs"
+                  data-testid="button-deselect-all"
+                >
+                  Deselect All
+                </Button>
               </div>
 
               {/* Description */}
               <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800 space-y-2">
                 <p className="text-xs font-medium">What will happen next?</p>
                 <ul className="text-xs text-muted-foreground space-y-1">
-                  <li>• Search rankings across your grid of locations</li>
+                  <li>• Search rankings across selected grid locations</li>
                   <li>• Find where your business website ranks</li>
                   <li>• Identify top-performing locations</li>
                   <li>• Generate comprehensive grid report</li>
@@ -210,6 +273,7 @@ export default function Step5Review() {
                 onClick={handleGenerateReport}
                 className="w-full h-11 text-sm font-semibold mt-auto"
                 data-testid="button-generate-report"
+                disabled={selectedPointIds.size === 0}
               >
                 Generate Report
                 <ArrowRight className="w-4 h-4 ml-2" />
@@ -219,7 +283,7 @@ export default function Step5Review() {
         </div>
 
         {/* Right Side - Map Preview */}
-        <div className="flex-1 min-h-96 lg:min-h-full">
+        <div className="flex-1 min-h-96 lg:min-h-full relative">
           <Card className="p-0 shadow-lg h-full overflow-hidden">
             <MapContainer
               center={mapCenter}
@@ -245,19 +309,31 @@ export default function Step5Review() {
               )}
 
               {/* Grid points */}
-              {gridPoints.map((point) => (
-                <CircleMarker
-                  key={point.id}
-                  center={[point.lat, point.lng]}
-                  radius={5}
-                  fillColor={point.isCenter ? "#ef4444" : "#3b82f6"}
-                  color={point.isCenter ? "#dc2626" : "#1d4ed8"}
-                  weight={1}
-                  opacity={0.8}
-                  fillOpacity={0.6}
-                />
-              ))}
+              {gridPoints.map((point) => {
+                const isPointSelected = selectedPointIds.has(point.id);
+                return (
+                  <CircleMarker
+                    key={point.id}
+                    center={[point.lat, point.lng]}
+                    radius={isPointSelected ? 7 : 5}
+                    fillColor={point.isCenter ? "#ef4444" : isPointSelected ? "#3b82f6" : "#a3a3a3"}
+                    color={point.isCenter ? "#dc2626" : isPointSelected ? "#1d4ed8" : "#737373"}
+                    weight={isPointSelected ? 2 : 1}
+                    opacity={isPointSelected ? 0.9 : 0.5}
+                    fillOpacity={isPointSelected ? 0.8 : 0.4}
+                    eventHandlers={{
+                      click: () => togglePointSelection(point.id),
+                    }}
+                    data-testid={`grid-point-${point.id}`}
+                  />
+                );
+              })}
             </MapContainer>
+            
+            {/* Map hint overlay */}
+            <div className="absolute top-4 left-4 bg-white/90 dark:bg-slate-900/90 px-3 py-2 rounded-lg text-xs text-muted-foreground pointer-events-none">
+              Click grid points to select/deselect
+            </div>
           </Card>
         </div>
       </div>

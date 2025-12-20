@@ -72,3 +72,10 @@
    - Scrolling works smoothly for long result lists
    - Map view layout: 60% for map, 40% for details sidebar with proper scrolling
    - Workflow hot updated successfully - changes deployed and verified
+[x] 45. December 20, 2025 - Distance Unit Radio Buttons Display as Row-wise
+   - Modified step4-grid.tsx to display Meters/Miles options horizontally
+   - Added `className="flex gap-4"` to RadioGroup component
+   - Distance between Grid Points section now displays buttons in a row instead of vertically stacked
+   - Both radio button options appear side-by-side with 1rem gap spacing
+   - Consistent with map-page.tsx implementation which already had row-wise layout
+   - Workflow hot updated successfully - changes deployed and verified on port 5000

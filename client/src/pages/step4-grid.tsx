@@ -134,7 +134,7 @@ export default function Step4Grid() {
               {/* Distance Unit */}
               <div className="space-y-3">
                 <Label className="text-base font-semibold">Distance between Grid Points</Label>
-                <RadioGroup value={distanceUnit} onValueChange={(value: any) => setDistanceUnit(value)}>
+                <RadioGroup value={distanceUnit} onValueChange={(value: any) => setDistanceUnit(value)} className="flex gap-4">
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="meters" id="meters" />
                     <Label htmlFor="meters" className="font-normal cursor-pointer">

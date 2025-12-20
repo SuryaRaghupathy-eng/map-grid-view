@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MapPin, ArrowRight, Search, Loader2 } from "lucide-react";
+import { MapPin, ArrowRight, Search, Loader2, Edit2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 
@@ -119,9 +119,21 @@ export default function Step2Location() {
             </div>
 
             {/* Business Website Summary */}
-            <div className="p-3 bg-secondary/50 rounded-lg">
-              <p className="text-sm text-muted-foreground">Business Website</p>
-              <p className="font-semibold text-sm break-all">{businessWebsite}</p>
+            <div className="p-3 bg-secondary/50 rounded-lg flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-muted-foreground">Business Website</p>
+                <p className="font-semibold text-sm break-all">{businessWebsite}</p>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => setLocation("/")}
+                data-testid="button-edit-step1-from-step2"
+                className="flex-shrink-0 h-6 w-6 p-0"
+              >
+                <Edit2 className="w-3 h-3" />
+              </Button>
             </div>
 
             {/* Tabs */}

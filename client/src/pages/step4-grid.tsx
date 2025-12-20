@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, Grid3X3 } from "lucide-react";
+import { ArrowRight, Grid3X3, Edit2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const GRID_SIZES = [
@@ -91,16 +91,40 @@ export default function Step4Grid() {
 
             {/* Summary Cards */}
             <div className="space-y-2 text-sm">
-              <div className="p-2 bg-secondary/50 rounded">
-                <p className="text-xs text-muted-foreground">Keyword</p>
-                <p className="font-semibold line-clamp-1">{searchKeyword}</p>
+              <div className="p-2 bg-secondary/50 rounded flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground">Keyword</p>
+                  <p className="font-semibold line-clamp-1">{searchKeyword}</p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setLocation("/keyword")}
+                  data-testid="button-edit-step3-from-step4"
+                  className="flex-shrink-0 h-5 w-5 p-0"
+                >
+                  <Edit2 className="w-3 h-3" />
+                </Button>
               </div>
               {selectedLocation && (
-                <div className="p-2 bg-secondary/50 rounded">
-                  <p className="text-xs text-muted-foreground">Location</p>
-                  <p className="font-semibold line-clamp-1">
-                    {selectedLocation.address || `${selectedLocation.lat.toFixed(4)}°, ${selectedLocation.lng.toFixed(4)}°`}
-                  </p>
+                <div className="p-2 bg-secondary/50 rounded flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-muted-foreground">Location</p>
+                    <p className="font-semibold line-clamp-1">
+                      {selectedLocation.address || `${selectedLocation.lat.toFixed(4)}°, ${selectedLocation.lng.toFixed(4)}°`}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setLocation("/location")}
+                    data-testid="button-edit-step2-from-step4"
+                    className="flex-shrink-0 h-5 w-5 p-0"
+                  >
+                    <Edit2 className="w-3 h-3" />
+                  </Button>
                 </div>
               )}
             </div>

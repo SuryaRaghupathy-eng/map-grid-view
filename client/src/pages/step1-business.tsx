@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MapPin, ArrowRight } from "lucide-react";
+import { MapPin, ArrowRight, Edit2 } from "lucide-react";
 
 export default function Step1Business() {
   const [, setLocation] = useLocation();
@@ -45,9 +45,24 @@ export default function Step1Business() {
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="business-website" className="text-base font-semibold">
-                  Business Website
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="business-website" className="text-base font-semibold">
+                    Business Website
+                  </Label>
+                  {businessWebsite && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setBusinessWebsite("")}
+                      data-testid="button-clear-website"
+                      className="text-xs"
+                    >
+                      <Edit2 className="w-3 h-3 mr-1" />
+                      Edit
+                    </Button>
+                  )}
+                </div>
                 <Input
                   id="business-website"
                   type="text"

@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MapPin, ArrowRight, Search } from "lucide-react";
+import { MapPin, ArrowRight, Search, ArrowLeft, Edit2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Step3Keyword() {
@@ -64,22 +64,46 @@ export default function Step3Keyword() {
             {/* Summary Cards */}
             <div className="space-y-3">
               {/* Business Website */}
-              <div className="p-3 bg-secondary/50 rounded-lg">
-                <p className="text-xs text-muted-foreground">Business Website</p>
-                <p className="font-semibold text-sm break-all">{businessWebsite}</p>
+              <div className="p-3 bg-secondary/50 rounded-lg flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground">Business Website</p>
+                  <p className="font-semibold text-sm break-all">{businessWebsite}</p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setLocation("/")}
+                  data-testid="button-edit-step1"
+                  className="flex-shrink-0 h-6 w-6 p-0"
+                >
+                  <Edit2 className="w-3 h-3" />
+                </Button>
               </div>
 
               {/* Location */}
               {selectedLocation && (
-                <div className="p-3 bg-secondary/50 rounded-lg">
-                  <p className="text-xs text-muted-foreground">Location</p>
-                  {selectedLocation.address ? (
-                    <p className="font-semibold text-sm break-all">{selectedLocation.address}</p>
-                  ) : (
-                    <p className="font-semibold text-sm">
-                      {selectedLocation.lat.toFixed(4)}°, {selectedLocation.lng.toFixed(4)}°
-                    </p>
-                  )}
+                <div className="p-3 bg-secondary/50 rounded-lg flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-muted-foreground">Location</p>
+                    {selectedLocation.address ? (
+                      <p className="font-semibold text-sm break-all">{selectedLocation.address}</p>
+                    ) : (
+                      <p className="font-semibold text-sm">
+                        {selectedLocation.lat.toFixed(4)}°, {selectedLocation.lng.toFixed(4)}°
+                      </p>
+                    )}
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setLocation("/location")}
+                    data-testid="button-edit-step2"
+                    className="flex-shrink-0 h-6 w-6 p-0"
+                  >
+                    <Edit2 className="w-3 h-3" />
+                  </Button>
                 </div>
               )}
             </div>
@@ -87,9 +111,24 @@ export default function Step3Keyword() {
             {/* Keyword Input */}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="keyword" className="text-base font-semibold">
-                  Search Keyword
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="keyword" className="text-base font-semibold">
+                    Search Keyword
+                  </Label>
+                  {keyword && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setKeyword("")}
+                      data-testid="button-clear-keyword"
+                      className="text-xs"
+                    >
+                      <Edit2 className="w-3 h-3 mr-1" />
+                      Edit
+                    </Button>
+                  )}
+                </div>
                 <Input
                   id="keyword"
                   type="text"

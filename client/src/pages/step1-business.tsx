@@ -22,7 +22,7 @@ export default function Step1Business() {
     e.preventDefault();
     if (businessWebsite.trim()) {
       sessionStorage.setItem("businessWebsite", businessWebsite);
-      setLocation("/map");
+      setLocation("/location");
     }
   };
 

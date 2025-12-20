@@ -1205,10 +1205,43 @@ function MapControls({
 
 export default function MapPage() {
   const [, navigate] = useLocation();
-  const [mapCenter, setMapCenter] = useState<LatLngExpression>(DEFAULT_CENTER);
+  const [mapCenter, setMapCenter] = useState<LatLngExpression>(() => {
+    const selectedLocation = sessionStorage.getItem("selectedLocation");
+    if (selectedLocation) {
+      try {
+        const location = JSON.parse(selectedLocation);
+        return [location.lat, location.lng];
+      } catch {
+        return DEFAULT_CENTER;
+      }
+    }
+    return DEFAULT_CENTER;
+  });
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
-  const [markerPosition, setMarkerPosition] = useState<LatLngExpression | null>(DEFAULT_CENTER);
-  const [currentAddress, setCurrentAddress] = useState<string | undefined>(undefined);
+  const [markerPosition, setMarkerPosition] = useState<LatLngExpression | null>(() => {
+    const selectedLocation = sessionStorage.getItem("selectedLocation");
+    if (selectedLocation) {
+      try {
+        const location = JSON.parse(selectedLocation);
+        return [location.lat, location.lng];
+      } catch {
+        return DEFAULT_CENTER;
+      }
+    }
+    return DEFAULT_CENTER;
+  });
+  const [currentAddress, setCurrentAddress] = useState<string | undefined>(() => {
+    const selectedLocation = sessionStorage.getItem("selectedLocation");
+    if (selectedLocation) {
+      try {
+        const location = JSON.parse(selectedLocation);
+        return location.address;
+      } catch {
+        return undefined;
+      }
+    }
+    return undefined;
+  });
   const [mapStyle, setMapStyle] = useState<keyof typeof MAP_STYLES>("street");
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("coordinates");
@@ -1227,6 +1260,14 @@ export default function MapPage() {
   const mapRef = useRef<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Clear selected location after use
+  useEffect(() => {
+    const selectedLocation = sessionStorage.getItem("selectedLocation");
+    if (selectedLocation && markerPosition) {
+      sessionStorage.removeItem("selectedLocation");
+    }
+  }, [markerPosition]);
 
   const { data: favorites = [], isLoading: isLoadingFavorites } = useQuery<Favorite[]>({
     queryKey: ["/api/favorites"],

@@ -184,20 +184,27 @@ export default function Step5Review() {
     setSelectedPointIds(new Set());
   };
 
-  const handleGenerateReport = () => {
+  const handleCreateCampaign = () => {
     if (selectedPointIds.size === 0) {
       toast({
         title: "No points selected",
-        description: "Please select at least one grid point to generate a report.",
+        description: "Please select at least one grid point to create a campaign.",
         variant: "destructive",
       });
       return;
     }
     
-    // Store selected point IDs and flag to trigger report generation on map page
-    sessionStorage.setItem("selectedGridPoints", JSON.stringify(Array.from(selectedPointIds)));
-    sessionStorage.setItem("generateReportOnLoad", "true");
-    setLocation("/map");
+    // Store campaign data for dashboard
+    const campaignData = {
+      businessWebsite,
+      selectedLocation,
+      searchKeyword,
+      gridConfig,
+      selectedPointIds: Array.from(selectedPointIds),
+      createdAt: new Date().toISOString(),
+    };
+    sessionStorage.setItem("campaignData", JSON.stringify(campaignData));
+    setLocation("/dashboard");
   };
 
   return (
@@ -288,12 +295,12 @@ export default function Step5Review() {
 
               {/* Button */}
               <Button
-                onClick={handleGenerateReport}
+                onClick={handleCreateCampaign}
                 className="w-full h-11 text-sm font-semibold mt-auto"
-                data-testid="button-generate-report"
+                data-testid="button-create-campaign"
                 disabled={selectedPointIds.size === 0}
               >
-                Generate Report
+                Create Campaign
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </div>

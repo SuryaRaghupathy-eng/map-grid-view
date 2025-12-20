@@ -10,6 +10,7 @@ import Step4Grid from "@/pages/step4-grid";
 import Step5Review from "@/pages/step5-review";
 import MapPage from "@/pages/map-page";
 import ReportPage from "@/pages/report-page";
+import CampaignDashboard from "@/pages/campaign-dashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -20,6 +21,7 @@ function Router() {
       <Route path="/keyword" component={Step3Keyword} />
       <Route path="/grid" component={Step4Grid} />
       <Route path="/review" component={Step5Review} />
+      <Route path="/dashboard" component={CampaignDashboard} />
       <Route path="/map" component={MapPage} />
       <Route path="/report" component={ReportPage} />
       <Route component={NotFound} />

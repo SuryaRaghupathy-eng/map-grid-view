@@ -395,7 +395,7 @@ export default function ReportPage() {
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col min-h-0">
+      <main className="flex-1 flex flex-col min-h-0 overflow-y-auto">
         {isSearching && (
           <div className="container mx-auto px-4 py-4">
             <Card className="p-6">

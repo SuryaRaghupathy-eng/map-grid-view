@@ -27,9 +27,10 @@
 [x] 62. December 20, 2025 - Froze Layout on Report Page
 [x] 63. December 20, 2025 - Removed White Space at Bottom Right of Details Panel
 [x] 64. December 20, 2025 - Fixed Scrolling to Top on Details Sidebar
-   - Moved header into scrollable area
-   - Entire sidebar now scrolls together (header + content)
-   - Users can scroll to top to see "Location Details" header
-   - Single unified scrollbar for entire details panel
-   - Fixed indentation and structural issues
+[x] 65. December 20, 2025 - Made Entire Page Scrollable
+   - Added overflow-y-auto to main element
+   - Stats cards scroll with page
+   - Map/grid view scrolls with page
+   - Everything moves together as one page
+   - Header remains sticky at top
    - Application running smoothly on port 5000

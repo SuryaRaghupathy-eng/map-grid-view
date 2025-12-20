@@ -41,7 +41,7 @@ export default function Step3Keyword() {
     e.preventDefault();
     if (keyword.trim()) {
       sessionStorage.setItem("searchKeyword", keyword);
-      setLocation("/map");
+      setLocation("/grid");
     }
   };
 

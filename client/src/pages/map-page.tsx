@@ -1245,11 +1245,29 @@ export default function MapPage() {
   const [mapStyle, setMapStyle] = useState<keyof typeof MAP_STYLES>("street");
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("coordinates");
-  const [gridConfig, setGridConfig] = useState<GridConfig>({
-    enabled: false,
-    distanceUnit: "miles",
-    spacing: 5,
-    gridSize: 7,
+  const [gridConfig, setGridConfig] = useState<GridConfig>(() => {
+    const gridConfigStr = sessionStorage.getItem("gridConfig");
+    if (gridConfigStr) {
+      try {
+        return {
+          enabled: false,
+          ...JSON.parse(gridConfigStr),
+        };
+      } catch {
+        return {
+          enabled: false,
+          distanceUnit: "miles",
+          spacing: 5,
+          gridSize: 7,
+        };
+      }
+    }
+    return {
+      enabled: false,
+      distanceUnit: "miles",
+      spacing: 5,
+      gridSize: 7,
+    };
   });
   const [gridPoints, setGridPoints] = useState<GridPoint[]>([]);
   const [businessPlaces, setBusinessPlaces] = useState<PlaceResult[]>([]);

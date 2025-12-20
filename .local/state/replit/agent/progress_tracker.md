@@ -100,3 +100,11 @@
    - Both controls now appear as rows instead of vertically stacked
    - Maintains proper spacing and alignment between controls
    - Hot reload deployed successfully - layout changes live on port 5000
+[x] 49. December 20, 2025 - Fixed Page Scrolling on Review & Analyze Page
+   - Changed main container from `min-h-screen` to `h-screen` - locks viewport height
+   - Added `overflow-hidden` to main container - prevents entire page from scrolling
+   - Added `min-h-0` to flex wrapper and left sidebar - allows proper flexbox height distribution
+   - Changed left card from overflow-visible to `overflow-y-auto` - allows internal sidebar scrolling only
+   - Page itself no longer scrolls, map stays fixed on right side
+   - Left sidebar scrolls internally if content exceeds available space
+   - Changes deployed live via hot reload on port 5000

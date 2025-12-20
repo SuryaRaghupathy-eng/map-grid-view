@@ -337,7 +337,7 @@ export default function Step5Review() {
               {/* Button */}
               <Button
                 onClick={handleCreateCampaign}
-                className="w-full h-11 text-sm font-semibold"
+                className="w-full h-10 text-sm font-semibold"
                 data-testid="button-create-campaign"
                 disabled={selectedPointIds.size === 0}
               >

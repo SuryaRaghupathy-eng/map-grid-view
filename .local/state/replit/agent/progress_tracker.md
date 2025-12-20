@@ -50,3 +50,8 @@
    - Secret successfully added to environment
    - Workflow restarted with new secret
    - Application running smoothly on port 5000
+[x] 60. December 20, 2025 - Fixed Page Scrolling on Report Page
+   - Changed outer container from min-h-screen to h-screen with overflow-hidden
+   - Added min-h-0 and overflow-y-auto to main element for internal scrolling
+   - Prevents page scroll while allowing content to scroll within the page
+   - Consistent with Campaign Created Page implementation

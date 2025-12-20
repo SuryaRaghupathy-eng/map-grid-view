@@ -1221,7 +1221,9 @@ export default function MapPage() {
   const [gridPoints, setGridPoints] = useState<GridPoint[]>([]);
   const [businessPlaces, setBusinessPlaces] = useState<PlaceResult[]>([]);
   const [gridKeyword, setGridKeyword] = useState("");
-  const [businessWebsite, setBusinessWebsite] = useState("");
+  const [businessWebsite, setBusinessWebsite] = useState(
+    () => sessionStorage.getItem("businessWebsite") || ""
+  );
   const mapRef = useRef<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();

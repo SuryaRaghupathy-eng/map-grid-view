@@ -1249,10 +1249,7 @@ export default function MapPage() {
     const gridConfigStr = sessionStorage.getItem("gridConfig");
     if (gridConfigStr) {
       try {
-        return {
-          enabled: false,
-          ...JSON.parse(gridConfigStr),
-        };
+        return JSON.parse(gridConfigStr);
       } catch {
         return {
           enabled: false,

@@ -121,3 +121,10 @@
    - Updated MapPage to load grid config from sessionStorage on initialization
    - Complete user flow: Step 1 (website) → Step 2 (location) → Step 3 (keyword) → Step 4 (grid) → Map Page
    - Workflow restarted and verified - application running successfully on port 5000
+[x] 30. December 20, 2025 - Auto-Display Grid on Map Navigation from Step 4
+   - Modified Step 4 to set `gridConfig.enabled = true` when saving grid configuration
+   - Updated MapPage to preserve the `enabled` status from sessionStorage
+   - Now when user clicks "Continue to Map" in Step 4, the grid points are automatically displayed
+   - Grid is shown immediately on map without needing to click "Show Grid on Map" button
+   - Complete onboarding flow works end-to-end: website → location → keyword → grid settings → auto-displayed grid map
+   - Workflow restarted and verified - application running successfully on port 5000

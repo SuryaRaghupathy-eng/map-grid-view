@@ -63,6 +63,7 @@ export default function Step4Grid() {
     e.preventDefault();
 
     const gridConfig = {
+      enabled: true,
       distanceUnit,
       gridSize: parseInt(gridSize),
       spacing: parseInt(spacing),

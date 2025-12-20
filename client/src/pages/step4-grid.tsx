@@ -70,7 +70,7 @@ export default function Step4Grid() {
     };
 
     sessionStorage.setItem("gridConfig", JSON.stringify(gridConfig));
-    setLocation("/map");
+    setLocation("/review");
   };
 
   return (
@@ -86,7 +86,7 @@ export default function Step4Grid() {
                 </div>
               </div>
               <h1 className="text-3xl font-bold">Map Navigator</h1>
-              <p className="text-muted-foreground">Step 4 of 4: Grid Settings</p>
+              <p className="text-muted-foreground">Step 4 of 5: Grid Settings</p>
             </div>
 
             {/* Summary Cards */}

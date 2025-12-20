@@ -58,7 +58,7 @@ export default function Step3Keyword() {
                 </div>
               </div>
               <h1 className="text-3xl font-bold">Map Navigator</h1>
-              <p className="text-muted-foreground">Step 3 of 3: Enter Keyword</p>
+              <p className="text-muted-foreground">Step 3 of 5: Enter Keyword</p>
             </div>
 
             {/* Summary Cards */}

@@ -588,16 +588,17 @@ export default function ReportPage() {
                 </div>
                 
                 {/* Details sidebar */}
-                <div className="w-[40%] border-l bg-card overflow-y-auto min-h-0 flex flex-col">
-                  <div className="px-4 pt-4 pb-2 flex-shrink-0">
-                    <h2 className="text-lg font-semibold flex items-center gap-2">
-                      <Building2 className="w-5 h-5" />
-                      {selectedPoint ? "Location Details" : "Select a Point"}
-                    </h2>
-                  </div>
-                  {selectedPoint ? (
-                    <div className="flex-1 overflow-y-auto px-4 pb-4">
-                      <div className="space-y-4">
+                <div className="w-[40%] border-l bg-card min-h-0 flex flex-col overflow-hidden">
+                  <div className="flex-1 overflow-y-auto flex flex-col">
+                    <div className="px-4 pt-4 pb-2 flex-shrink-0">
+                      <h2 className="text-lg font-semibold flex items-center gap-2">
+                        <Building2 className="w-5 h-5" />
+                        {selectedPoint ? "Location Details" : "Select a Point"}
+                      </h2>
+                    </div>
+                    {selectedPoint ? (
+                      <div className="flex-1 px-4 pb-4">
+                        <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm text-muted-foreground">Grid Position</p>
@@ -678,14 +679,15 @@ export default function ReportPage() {
                           </div>
                         </div>
                       )}
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-4">
-                      <MapPin className="w-12 h-12 mb-4" />
-                      <p className="text-center">Click on a circle on the map to view details</p>
-                    </div>
-                  )}
+                    ) : (
+                      <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-4">
+                        <MapPin className="w-12 h-12 mb-4" />
+                        <p className="text-center">Click on a circle on the map to view details</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             ) : (

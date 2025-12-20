@@ -26,8 +26,10 @@
 [x] 61. December 20, 2025 - Consolidated Multiple Scrollbars into Single Scrollbar
 [x] 62. December 20, 2025 - Froze Layout on Report Page
 [x] 63. December 20, 2025 - Removed White Space at Bottom Right of Details Panel
-   - Changed header padding from p-4 to px-4 pt-4 pb-2
-   - Changed content padding from p-4 to px-4 pb-4
-   - Tightened spacing between header and content
-   - Eliminated excess white space while maintaining readability
+[x] 64. December 20, 2025 - Fixed Scrolling to Top on Details Sidebar
+   - Moved header into scrollable area
+   - Entire sidebar now scrolls together (header + content)
+   - Users can scroll to top to see "Location Details" header
+   - Single unified scrollbar for entire details panel
+   - Fixed indentation and structural issues
    - Application running smoothly on port 5000

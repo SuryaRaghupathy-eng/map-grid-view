@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, ArrowRight } from "lucide-react";
+import { CheckCircle2, ArrowRight, Edit2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { MapContainer, TileLayer, Marker, CircleMarker, useMap } from "react-leaflet";
 import { Icon, LatLngExpression, LatLngBounds, DivIcon } from "leaflet";
@@ -227,28 +227,76 @@ export default function Step5Review() {
 
               {/* Summary Cards */}
               <div className="space-y-2">
-                <div className="p-3 bg-secondary/50 rounded-lg border border-primary/10">
-                  <p className="text-xs text-muted-foreground">Business Website</p>
-                  <p className="font-semibold text-xs break-all text-primary">{businessWebsite}</p>
+                <div className="p-3 bg-secondary/50 rounded-lg border border-primary/10 flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-muted-foreground">Business Website</p>
+                    <p className="font-semibold text-xs break-all text-primary">{businessWebsite}</p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setLocation("/")}
+                    data-testid="button-edit-step1-from-review"
+                    className="flex-shrink-0 h-6 w-6 p-0"
+                  >
+                    <Edit2 className="w-3 h-3" />
+                  </Button>
                 </div>
 
-                <div className="p-3 bg-secondary/50 rounded-lg border border-primary/10">
-                  <p className="text-xs text-muted-foreground">Location</p>
-                  <p className="font-semibold text-xs break-all">
-                    {selectedLocation?.address || `${selectedLocation?.lat.toFixed(4)}°, ${selectedLocation?.lng.toFixed(4)}°`}
-                  </p>
+                <div className="p-3 bg-secondary/50 rounded-lg border border-primary/10 flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-muted-foreground">Location</p>
+                    <p className="font-semibold text-xs break-all">
+                      {selectedLocation?.address || `${selectedLocation?.lat.toFixed(4)}°, ${selectedLocation?.lng.toFixed(4)}°`}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setLocation("/location")}
+                    data-testid="button-edit-step2-from-review"
+                    className="flex-shrink-0 h-6 w-6 p-0"
+                  >
+                    <Edit2 className="w-3 h-3" />
+                  </Button>
                 </div>
 
-                <div className="p-3 bg-secondary/50 rounded-lg border border-primary/10">
-                  <p className="text-xs text-muted-foreground">Keyword</p>
-                  <p className="font-semibold text-xs break-all">{searchKeyword}</p>
+                <div className="p-3 bg-secondary/50 rounded-lg border border-primary/10 flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-muted-foreground">Keyword</p>
+                    <p className="font-semibold text-xs break-all">{searchKeyword}</p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setLocation("/keyword")}
+                    data-testid="button-edit-step3-from-review"
+                    className="flex-shrink-0 h-6 w-6 p-0"
+                  >
+                    <Edit2 className="w-3 h-3" />
+                  </Button>
                 </div>
 
-                <div className="p-3 bg-secondary/50 rounded-lg border border-primary/10">
-                  <p className="text-xs text-muted-foreground">Grid Configuration</p>
-                  <p className="font-semibold text-xs">
-                    {gridConfig?.gridSize}x{gridConfig?.gridSize} grid, {gridConfig?.spacing}{gridConfig?.distanceUnit === "miles" ? "mi" : "m"} spacing
-                  </p>
+                <div className="p-3 bg-secondary/50 rounded-lg border border-primary/10 flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-muted-foreground">Grid Configuration</p>
+                    <p className="font-semibold text-xs">
+                      {gridConfig?.gridSize}x{gridConfig?.gridSize} grid, {gridConfig?.spacing}{gridConfig?.distanceUnit === "miles" ? "mi" : "m"} spacing
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setLocation("/grid")}
+                    data-testid="button-edit-step4-from-review"
+                    className="flex-shrink-0 h-6 w-6 p-0"
+                  >
+                    <Edit2 className="w-3 h-3" />
+                  </Button>
                 </div>
 
                 {/* Grid Points Selection Counter */}

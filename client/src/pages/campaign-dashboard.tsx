@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, ArrowLeft, Play } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { CheckCircle2, ArrowLeft, Play, Edit2, Save, X } from "lucide-react";
 import { MapContainer, TileLayer, Marker, CircleMarker } from "react-leaflet";
 import { Icon, LatLngExpression } from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -74,33 +75,62 @@ export default function CampaignDashboard() {
   const [, setLocation] = useLocation();
   const [gridPoints, setGridPoints] = useState<GridPoint[]>([]);
   const [mapCenter, setMapCenter] = useState<LatLngExpression>([40.7128, -74.0060]);
+  const [campaignData, setCampaignData] = useState<CampaignData | null>(null);
+  
+  // Edit state
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const [editValues, setEditValues] = useState<Partial<CampaignData>>({});
 
   const campaignDataStr = sessionStorage.getItem("campaignData");
-  const campaignData: CampaignData | null = campaignDataStr ? JSON.parse(campaignDataStr) : null;
+  const initialCampaignData: CampaignData | null = campaignDataStr ? JSON.parse(campaignDataStr) : null;
 
   useEffect(() => {
-    if (!campaignData) {
+    if (!initialCampaignData) {
       setLocation("/");
       return;
     }
 
+    setCampaignData(initialCampaignData);
+
     // Calculate grid points
     const points = calculateGridPoints(
-      campaignData.selectedLocation.lat,
-      campaignData.selectedLocation.lng,
-      campaignData.gridConfig.spacing,
-      campaignData.gridConfig.gridSize,
-      campaignData.gridConfig.distanceUnit
+      initialCampaignData.selectedLocation.lat,
+      initialCampaignData.selectedLocation.lng,
+      initialCampaignData.gridConfig.spacing,
+      initialCampaignData.gridConfig.gridSize,
+      initialCampaignData.gridConfig.distanceUnit
     );
     setGridPoints(points);
-    setMapCenter([campaignData.selectedLocation.lat, campaignData.selectedLocation.lng]);
-  }, [campaignData, setLocation]);
+    setMapCenter([initialCampaignData.selectedLocation.lat, initialCampaignData.selectedLocation.lng]);
+  }, [setLocation]);
 
   if (!campaignData) {
     return null;
   }
 
   const selectedPoints = gridPoints.filter(p => campaignData.selectedPointIds.includes(p.id));
+
+  const handleEditField = (field: string) => {
+    setEditingField(field);
+    setEditValues(campaignData);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editValues) return;
+
+    const updatedData = {
+      ...campaignData,
+      ...editValues,
+    };
+    setCampaignData(updatedData);
+    sessionStorage.setItem("campaignData", JSON.stringify(updatedData));
+    setEditingField(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingField(null);
+    setEditValues({});
+  };
 
   const handleRunReport = () => {
     // Store data for report generation
@@ -144,28 +174,149 @@ export default function CampaignDashboard() {
 
               {/* Campaign Details */}
               <div className="space-y-2">
+                {/* Campaign Name (Keyword) */}
                 <div className="p-3 bg-secondary/50 rounded-lg border border-primary/10">
-                  <p className="text-xs text-muted-foreground">Campaign Name</p>
-                  <p className="font-semibold text-xs break-all text-primary">{campaignData.searchKeyword}</p>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-muted-foreground">Campaign Name</p>
+                      {editingField === "keyword" ? (
+                        <Input
+                          value={editValues.searchKeyword || ""}
+                          onChange={(e) => setEditValues({ ...editValues, searchKeyword: e.target.value })}
+                          className="mt-1 text-xs h-7"
+                          data-testid="input-campaign-name"
+                        />
+                      ) : (
+                        <p className="font-semibold text-xs break-all text-primary">{campaignData.searchKeyword}</p>
+                      )}
+                    </div>
+                    {editingField === "keyword" ? null : (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0 flex-shrink-0"
+                        onClick={() => handleEditField("keyword")}
+                        data-testid="button-edit-keyword"
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
+                {/* Business Website */}
                 <div className="p-3 bg-secondary/50 rounded-lg border border-primary/10">
-                  <p className="text-xs text-muted-foreground">Business Website</p>
-                  <p className="font-semibold text-xs break-all">{campaignData.businessWebsite}</p>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-muted-foreground">Business Website</p>
+                      {editingField === "website" ? (
+                        <Input
+                          value={editValues.businessWebsite || ""}
+                          onChange={(e) => setEditValues({ ...editValues, businessWebsite: e.target.value })}
+                          className="mt-1 text-xs h-7"
+                          data-testid="input-business-website"
+                        />
+                      ) : (
+                        <p className="font-semibold text-xs break-all">{campaignData.businessWebsite}</p>
+                      )}
+                    </div>
+                    {editingField === "website" ? null : (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0 flex-shrink-0"
+                        onClick={() => handleEditField("website")}
+                        data-testid="button-edit-website"
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
+                {/* Location */}
                 <div className="p-3 bg-secondary/50 rounded-lg border border-primary/10">
-                  <p className="text-xs text-muted-foreground">Location</p>
-                  <p className="font-semibold text-xs break-all">
-                    {campaignData.selectedLocation?.address || `${campaignData.selectedLocation?.lat.toFixed(4)}°, ${campaignData.selectedLocation?.lng.toFixed(4)}°`}
-                  </p>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-muted-foreground">Location</p>
+                      {editingField === "location" ? (
+                        <Input
+                          value={editValues.selectedLocation?.address || ""}
+                          onChange={(e) => setEditValues({
+                            ...editValues,
+                            selectedLocation: { ...(editValues.selectedLocation || campaignData.selectedLocation), address: e.target.value }
+                          })}
+                          className="mt-1 text-xs h-7"
+                          data-testid="input-location"
+                        />
+                      ) : (
+                        <p className="font-semibold text-xs break-all">
+                          {campaignData.selectedLocation?.address || `${campaignData.selectedLocation?.lat.toFixed(4)}°, ${campaignData.selectedLocation?.lng.toFixed(4)}°`}
+                        </p>
+                      )}
+                    </div>
+                    {editingField === "location" ? null : (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0 flex-shrink-0"
+                        onClick={() => handleEditField("location")}
+                        data-testid="button-edit-location"
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
+                {/* Grid Configuration */}
                 <div className="p-3 bg-secondary/50 rounded-lg border border-primary/10">
-                  <p className="text-xs text-muted-foreground">Grid Configuration</p>
-                  <p className="font-semibold text-xs">
-                    {campaignData.gridConfig?.gridSize}x{campaignData.gridConfig?.gridSize} grid, {campaignData.gridConfig?.spacing}{campaignData.gridConfig?.distanceUnit === "miles" ? "mi" : "m"} spacing
-                  </p>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-muted-foreground">Grid Configuration</p>
+                      {editingField === "gridConfig" ? (
+                        <div className="mt-1 space-y-2">
+                          <Input
+                            type="number"
+                            value={editValues.gridConfig?.gridSize || ""}
+                            onChange={(e) => setEditValues({
+                              ...editValues,
+                              gridConfig: { ...(editValues.gridConfig || campaignData.gridConfig), gridSize: parseInt(e.target.value) || 0 }
+                            })}
+                            placeholder="Grid size"
+                            className="text-xs h-7"
+                            data-testid="input-grid-size"
+                          />
+                          <Input
+                            type="number"
+                            value={editValues.gridConfig?.spacing || ""}
+                            onChange={(e) => setEditValues({
+                              ...editValues,
+                              gridConfig: { ...(editValues.gridConfig || campaignData.gridConfig), spacing: parseInt(e.target.value) || 0 }
+                            })}
+                            placeholder="Spacing"
+                            className="text-xs h-7"
+                            data-testid="input-grid-spacing"
+                          />
+                        </div>
+                      ) : (
+                        <p className="font-semibold text-xs">
+                          {campaignData.gridConfig?.gridSize}x{campaignData.gridConfig?.gridSize} grid, {campaignData.gridConfig?.spacing}{campaignData.gridConfig?.distanceUnit === "miles" ? "mi" : "m"} spacing
+                        </p>
+                      )}
+                    </div>
+                    {editingField === "gridConfig" ? null : (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0 flex-shrink-0"
+                        onClick={() => handleEditField("gridConfig")}
+                        data-testid="button-edit-grid-config"
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Grid Points Selection Counter */}
@@ -175,6 +326,31 @@ export default function CampaignDashboard() {
                     {selectedPoints.length} / {gridPoints.length}
                   </p>
                 </div>
+
+                {/* Edit Mode Save/Cancel Buttons */}
+                {editingField && (
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      size="sm"
+                      onClick={handleSaveEdit}
+                      className="flex-1 h-8 text-xs"
+                      data-testid="button-save-edit"
+                    >
+                      <Save className="w-3 h-3 mr-1" />
+                      Save
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleCancelEdit}
+                      className="flex-1 h-8 text-xs"
+                      data-testid="button-cancel-edit"
+                    >
+                      <X className="w-3 h-3 mr-1" />
+                      Cancel
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {/* Description */}

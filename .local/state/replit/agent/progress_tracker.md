@@ -108,3 +108,12 @@
    - Page itself no longer scrolls, map stays fixed on right side
    - Left sidebar scrolls internally if content exceeds available space
    - Changes deployed live via hot reload on port 5000
+[x] 50. December 20, 2025 - Grid Points Counter and Selection Controls Layout Reorganized
+   - Grouped "Select All" and "Deselect All" buttons vertically (flex-col with gap-2)
+   - Set button group width to w-32 for consistent sizing
+   - Placed "Grid Points Selected" counter and button group in a horizontal row (flex gap-3)
+   - Counter now takes flex-1 for responsive width
+   - Button group stays fixed width on the right side
+   - Removed flex-1 from individual buttons since they're now in a column
+   - Layout matches reference design with counter on left, buttons grouped on right
+   - Changes deployed live via hot reload on port 5000

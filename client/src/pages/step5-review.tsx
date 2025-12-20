@@ -299,35 +299,39 @@ export default function Step5Review() {
                   </Button>
                 </div>
 
+              </div>
+
+              {/* Grid Points Selection Counter and Selection Controls Row */}
+              <div className="flex gap-3">
                 {/* Grid Points Selection Counter */}
-                <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
+                <div className="flex-1 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
                   <p className="text-xs text-muted-foreground">Grid Points Selected</p>
                   <p className="font-bold text-lg text-green-600 dark:text-green-400" data-testid="text-selected-count">
                     {selectedPointIds.size} / {gridPoints.length}
                   </p>
                 </div>
-              </div>
 
-              {/* Selection Controls */}
-              <div className="flex gap-2">
-                <Button
-                  onClick={handleSelectAll}
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 text-xs"
-                  data-testid="button-select-all"
-                >
-                  Select All
-                </Button>
-                <Button
-                  onClick={handleDeselectAll}
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 text-xs"
-                  data-testid="button-deselect-all"
-                >
-                  Deselect All
-                </Button>
+                {/* Selection Controls - Grouped in Column */}
+                <div className="flex flex-col gap-2 w-32">
+                  <Button
+                    onClick={handleSelectAll}
+                    variant="outline"
+                    size="sm"
+                    className="text-xs"
+                    data-testid="button-select-all"
+                  >
+                    Select All
+                  </Button>
+                  <Button
+                    onClick={handleDeselectAll}
+                    variant="outline"
+                    size="sm"
+                    className="text-xs"
+                    data-testid="button-deselect-all"
+                  >
+                    Deselect All
+                  </Button>
+                </div>
               </div>
 
               {/* Description */}

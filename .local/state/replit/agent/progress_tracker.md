@@ -63,3 +63,12 @@
    - Edit buttons are positioned on the right side of each card
    - Workflow restarted and verified - hot reload confirmed all changes deployed
    - Application fully functional with complete editing flow across all pages
+[x] 44. December 20, 2025 - Fixed Overflow Issue on Report Page
+   - Added proper height constraint to the right details sidebar on report page
+   - Changed from `overflow-auto` to `overflow-y-auto` with explicit height: `calc(100vh - 280px)`
+   - Sidebar now matches the map height for consistent layout
+   - Content scrolls properly within the constrained height
+   - Location Details, Target Business Found, and Top Results sections no longer overflow
+   - Scrolling works smoothly for long result lists
+   - Map view layout: 60% for map, 40% for details sidebar with proper scrolling
+   - Workflow hot updated successfully - changes deployed and verified

@@ -588,7 +588,7 @@ export default function ReportPage() {
                 </div>
                 
                 {/* Details sidebar */}
-                <div className="w-[40%] border-l bg-card p-4 overflow-auto">
+                <div className="w-[40%] border-l bg-card p-4 overflow-y-auto" style={{ height: "calc(100vh - 280px)" }}>
                   <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                     <Building2 className="w-5 h-5" />
                     {selectedPoint ? "Location Details" : "Select a Point"}

@@ -4,7 +4,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, FileText, MapPin, Grid3X3, Download, TrendingUp, TrendingDown, Target, Globe, Phone, Star, Building2, Loader2, AlertCircle, Map } from "lucide-react";
@@ -396,7 +395,7 @@ export default function ReportPage() {
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+      <main className="flex-1 flex flex-col min-h-0">
         {isSearching && (
           <div className="container mx-auto px-4 py-4">
             <Card className="p-6">
@@ -415,17 +414,18 @@ export default function ReportPage() {
 
         {searchResults && (
           <>
-            <div className="container mx-auto px-4 py-4">
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                <Card className="p-4">
-                  <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-                    <TrendingUp className="w-4 h-4" />
-                    Avg Rank
-                  </div>
-                  <p className={`font-bold text-2xl ${getRankTextColor(searchResults.summary.avgRank)}`} data-testid="text-avg-rank">
-                    {searchResults.summary.avgRank || "N/A"}
-                  </p>
-                </Card>
+            <div className="px-4 py-4 flex-shrink-0 border-b">
+              <div className="container mx-auto">
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                  <Card className="p-4">
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                      <TrendingUp className="w-4 h-4" />
+                      Avg Rank
+                    </div>
+                    <p className={`font-bold text-2xl ${getRankTextColor(searchResults.summary.avgRank)}`} data-testid="text-avg-rank">
+                      {searchResults.summary.avgRank || "N/A"}
+                    </p>
+                  </Card>
 
                 <Card className="p-4">
                   <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
@@ -475,12 +475,13 @@ export default function ReportPage() {
                     {searchResults.summary.notFoundCount}
                   </p>
                   <p className="text-xs text-muted-foreground">points</p>
-                </Card>
+                  </Card>
+                </div>
               </div>
             </div>
 
             {viewMode === "map" ? (
-              <div className="flex-1 flex">
+              <div className="flex-1 flex min-h-0">
                 <div className="w-[60%] relative">
                   <MapContainer
                     center={[defaultCenter.lat, defaultCenter.lng]}
@@ -587,13 +588,16 @@ export default function ReportPage() {
                 </div>
                 
                 {/* Details sidebar */}
-                <div className="w-[40%] border-l bg-card p-4 overflow-y-auto" style={{ height: "calc(100vh - 280px)" }}>
-                  <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <Building2 className="w-5 h-5" />
-                    {selectedPoint ? "Location Details" : "Select a Point"}
-                  </h2>
+                <div className="w-[40%] border-l bg-card overflow-y-auto min-h-0 flex flex-col">
+                  <div className="p-4 flex-shrink-0">
+                    <h2 className="text-lg font-semibold flex items-center gap-2">
+                      <Building2 className="w-5 h-5" />
+                      {selectedPoint ? "Location Details" : "Select a Point"}
+                    </h2>
+                  </div>
                   {selectedPoint ? (
-                    <div className="space-y-4">
+                    <div className="flex-1 overflow-y-auto p-4">
+                      <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm text-muted-foreground">Grid Position</p>
@@ -649,36 +653,35 @@ export default function ReportPage() {
                       {selectedPoint.places.length > 0 && (
                         <div className="border-t pt-4">
                           <h4 className="font-semibold mb-2">Top Results at This Location</h4>
-                          <ScrollArea className="h-48">
-                            <div className="space-y-2">
-                              {selectedPoint.places.slice(0, 10).map((place, idx) => (
-                                <div 
-                                  key={idx} 
-                                  className={`p-2 rounded text-sm ${
-                                    place.position === selectedPoint.rank 
-                                      ? "bg-green-100 dark:bg-green-900 border border-green-500" 
-                                      : "bg-muted/50"
-                                  }`}
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <span className="font-medium">#{place.position} {place.title}</span>
-                                    {place.rating && (
-                                      <span className="flex items-center gap-1 text-xs">
-                                        <Star className="w-3 h-3 text-yellow-500" />
-                                        {place.rating}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <p className="text-xs text-muted-foreground truncate">{place.address}</p>
+                          <div className="space-y-2">
+                            {selectedPoint.places.slice(0, 10).map((place, idx) => (
+                              <div 
+                                key={idx} 
+                                className={`p-2 rounded text-sm ${
+                                  place.position === selectedPoint.rank 
+                                    ? "bg-green-100 dark:bg-green-900 border border-green-500" 
+                                    : "bg-muted/50"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span className="font-medium">#{place.position} {place.title}</span>
+                                  {place.rating && (
+                                    <span className="flex items-center gap-1 text-xs">
+                                      <Star className="w-3 h-3 text-yellow-500" />
+                                      {place.rating}
+                                    </span>
+                                  )}
                                 </div>
-                              ))}
-                            </div>
-                          </ScrollArea>
+                                <p className="text-xs text-muted-foreground truncate">{place.address}</p>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
+                      </div>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center h-48 text-muted-foreground">
+                    <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-4">
                       <MapPin className="w-12 h-12 mb-4" />
                       <p className="text-center">Click on a circle on the map to view details</p>
                     </div>
@@ -785,31 +788,29 @@ export default function ReportPage() {
                         {selectedPoint.places.length > 0 && (
                           <div className="border-t pt-4">
                             <h4 className="font-semibold mb-2">Top Results at This Location</h4>
-                            <ScrollArea className="h-48">
-                              <div className="space-y-2">
-                                {selectedPoint.places.slice(0, 10).map((place, idx) => (
-                                  <div 
-                                    key={idx} 
-                                    className={`p-2 rounded text-sm ${
-                                      place.position === selectedPoint.rank 
-                                        ? "bg-green-100 dark:bg-green-900 border border-green-500" 
-                                        : "bg-muted/50"
-                                    }`}
-                                  >
-                                    <div className="flex items-center justify-between">
-                                      <span className="font-medium">#{place.position} {place.title}</span>
-                                      {place.rating && (
-                                        <span className="flex items-center gap-1 text-xs">
-                                          <Star className="w-3 h-3 text-yellow-500" />
-                                          {place.rating}
-                                        </span>
-                                      )}
-                                    </div>
-                                    <p className="text-xs text-muted-foreground truncate">{place.address}</p>
+                            <div className="space-y-2">
+                              {selectedPoint.places.slice(0, 10).map((place, idx) => (
+                                <div 
+                                  key={idx} 
+                                  className={`p-2 rounded text-sm ${
+                                    place.position === selectedPoint.rank 
+                                      ? "bg-green-100 dark:bg-green-900 border border-green-500" 
+                                      : "bg-muted/50"
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-medium">#{place.position} {place.title}</span>
+                                    {place.rating && (
+                                      <span className="flex items-center gap-1 text-xs">
+                                        <Star className="w-3 h-3 text-yellow-500" />
+                                        {place.rating}
+                                      </span>
+                                    )}
                                   </div>
-                                ))}
-                              </div>
-                            </ScrollArea>
+                                  <p className="text-xs text-muted-foreground truncate">{place.address}</p>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         )}
                       </div>

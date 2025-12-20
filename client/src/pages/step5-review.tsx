@@ -302,17 +302,17 @@ export default function Step5Review() {
               </div>
 
               {/* Grid Points Selection Counter and Selection Controls Row */}
-              <div className="flex gap-3">
+              <div className="flex gap-2">
                 {/* Grid Points Selection Counter */}
-                <div className="flex-1 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
-                  <p className="text-xs text-muted-foreground">Grid Points Selected</p>
-                  <p className="font-bold text-lg text-green-600 dark:text-green-400" data-testid="text-selected-count">
+                <div className="flex-1 p-2 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
+                  <p className="text-xs text-muted-foreground leading-tight">Grid Points Selected</p>
+                  <p className="font-bold text-base text-green-600 dark:text-green-400 leading-tight" data-testid="text-selected-count">
                     {selectedPointIds.size} / {gridPoints.length}
                   </p>
                 </div>
 
                 {/* Selection Controls - Grouped in Column */}
-                <div className="flex flex-col gap-2 w-32">
+                <div className="flex flex-col gap-1 w-32">
                   <Button
                     onClick={handleSelectAll}
                     variant="outline"

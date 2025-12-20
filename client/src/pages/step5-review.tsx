@@ -213,7 +213,7 @@ export default function Step5Review() {
         {/* Left Side - Summary Cards */}
         <div className="w-full lg:w-96 flex flex-col min-h-0">
           <Card className="p-6 shadow-lg flex-1 flex flex-col overflow-y-auto">
-            <div className="space-y-6 flex-1">
+            <div className="space-y-3 flex-1">
               {/* Header */}
               <div className="text-center space-y-2">
                 <div className="flex justify-center">

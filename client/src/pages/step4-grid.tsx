@@ -150,42 +150,45 @@ export default function Step4Grid() {
                 </RadioGroup>
               </div>
 
-              {/* Grid Point Spacing */}
-              <div className="space-y-2">
-                <Label htmlFor="spacing" className="text-sm font-medium">
-                  Grid point spacing
-                </Label>
-                <Select value={spacing} onValueChange={setSpacing}>
-                  <SelectTrigger id="spacing" data-testid="select-spacing">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {spacingOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value.toString()}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Grid Point Spacing and Grid Size Row */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Grid Point Spacing */}
+                <div className="space-y-2">
+                  <Label htmlFor="spacing" className="text-sm font-medium">
+                    Grid point spacing
+                  </Label>
+                  <Select value={spacing} onValueChange={setSpacing}>
+                    <SelectTrigger id="spacing" data-testid="select-spacing">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {spacingOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value.toString()}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              {/* Grid Size */}
-              <div className="space-y-2">
-                <Label htmlFor="gridSize" className="text-sm font-medium">
-                  Grid size template
-                </Label>
-                <Select value={gridSize} onValueChange={setGridSize}>
-                  <SelectTrigger id="gridSize" data-testid="select-grid-size">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {GRID_SIZES.map((size) => (
-                      <SelectItem key={size.value} value={size.value.toString()}>
-                        {size.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {/* Grid Size */}
+                <div className="space-y-2">
+                  <Label htmlFor="gridSize" className="text-sm font-medium">
+                    Grid size template
+                  </Label>
+                  <Select value={gridSize} onValueChange={setGridSize}>
+                    <SelectTrigger id="gridSize" data-testid="select-grid-size">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {GRID_SIZES.map((size) => (
+                        <SelectItem key={size.value} value={size.value.toString()}>
+                          {size.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <Button

@@ -172,6 +172,27 @@ export default function CampaignDashboard() {
                 <p className="text-sm text-muted-foreground">Ready to run your ranking report</p>
               </div>
 
+              {/* Buttons */}
+              <div className="flex flex-col gap-2">
+                <Button
+                  onClick={handleRunReport}
+                  className="w-full h-11 text-sm font-semibold"
+                  data-testid="button-run-report"
+                >
+                  Run Report
+                  <Play className="w-4 h-4 ml-2" />
+                </Button>
+                <Button
+                  onClick={() => setLocation("/review")}
+                  variant="outline"
+                  className="w-full text-sm"
+                  data-testid="button-back-to-review"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Review
+                </Button>
+              </div>
+
               {/* Campaign Details */}
               <div className="space-y-2">
                 {/* Campaign Name (Keyword) */}
@@ -362,27 +383,6 @@ export default function CampaignDashboard() {
                   <li>• Identify top-performing locations</li>
                   <li>• Generate comprehensive analysis report</li>
                 </ul>
-              </div>
-
-              {/* Buttons */}
-              <div className="flex flex-col gap-2">
-                <Button
-                  onClick={handleRunReport}
-                  className="w-full h-11 text-sm font-semibold"
-                  data-testid="button-run-report"
-                >
-                  Run Report
-                  <Play className="w-4 h-4 ml-2" />
-                </Button>
-                <Button
-                  onClick={() => setLocation("/review")}
-                  variant="outline"
-                  className="w-full text-sm"
-                  data-testid="button-back-to-review"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to Review
-                </Button>
               </div>
             </div>
           </Card>

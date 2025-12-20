@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Step1Business from "@/pages/step1-business";
 import Step2Location from "@/pages/step2-location";
+import Step3Keyword from "@/pages/step3-keyword";
 import MapPage from "@/pages/map-page";
 import ReportPage from "@/pages/report-page";
 import NotFound from "@/pages/not-found";
@@ -14,6 +15,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Step1Business} />
       <Route path="/location" component={Step2Location} />
+      <Route path="/keyword" component={Step3Keyword} />
       <Route path="/map" component={MapPage} />
       <Route path="/report" component={ReportPage} />
       <Route component={NotFound} />

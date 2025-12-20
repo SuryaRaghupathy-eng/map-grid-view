@@ -58,7 +58,7 @@ export default function Step2Location() {
       lng: parseFloat(suggestion.lon),
       address: suggestion.display_name,
     }));
-    setLocation("/map");
+    setLocation("/keyword");
   };
 
   const handleCoordinatesSubmit = (e: React.FormEvent) => {
@@ -99,7 +99,7 @@ export default function Step2Location() {
       lng,
       address: undefined,
     }));
-    setLocation("/map");
+    setLocation("/keyword");
   };
 
   return (

@@ -1253,7 +1253,9 @@ export default function MapPage() {
   });
   const [gridPoints, setGridPoints] = useState<GridPoint[]>([]);
   const [businessPlaces, setBusinessPlaces] = useState<PlaceResult[]>([]);
-  const [gridKeyword, setGridKeyword] = useState("");
+  const [gridKeyword, setGridKeyword] = useState(
+    () => sessionStorage.getItem("searchKeyword") || ""
+  );
   const [businessWebsite, setBusinessWebsite] = useState(
     () => sessionStorage.getItem("businessWebsite") || ""
   );

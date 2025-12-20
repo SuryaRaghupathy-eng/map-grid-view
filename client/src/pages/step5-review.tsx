@@ -4,8 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { MapContainer, TileLayer, Marker, CircleMarker } from "react-leaflet";
-import { Icon, LatLngExpression } from "leaflet";
+import { MapContainer, TileLayer, Marker, CircleMarker, useMap } from "react-leaflet";
+import { Icon, LatLngExpression, LatLngBounds } from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 interface GridPoint {
@@ -77,6 +77,21 @@ function calculateGridPoints(
   }
 
   return points;
+}
+
+function MapBoundsController({ gridPoints }: { gridPoints: GridPoint[] }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (gridPoints.length > 0) {
+      const bounds = new LatLngBounds(
+        gridPoints.map((point) => [point.lat, point.lng])
+      );
+      map.fitBounds(bounds, { padding: [50, 50] });
+    }
+  }, [gridPoints, map]);
+
+  return null;
 }
 
 export default function Step5Review() {
@@ -216,6 +231,9 @@ export default function Step5Review() {
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               />
+
+              {/* Map bounds controller - fits all grid points */}
+              <MapBoundsController gridPoints={gridPoints} />
 
               {/* Center marker */}
               {selectedLocation && (

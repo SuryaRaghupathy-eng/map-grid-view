@@ -409,7 +409,6 @@ export default function ReportPage() {
                   </p>
                 </div>
               </div>
-              <Progress className="mt-4" value={33} />
             </Card>
           </div>
         )}

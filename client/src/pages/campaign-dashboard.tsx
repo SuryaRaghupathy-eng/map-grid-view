@@ -155,11 +155,11 @@ export default function CampaignDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-900 dark:to-slate-800 p-4 flex flex-col">
-      <div className="flex-1 flex flex-col lg:flex-row gap-4 max-w-7xl mx-auto w-full">
+    <div className="h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-900 dark:to-slate-800 p-4 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row gap-4 max-w-7xl mx-auto w-full min-h-0">
         {/* Left Side - Campaign Details */}
-        <div className="w-full lg:w-96 flex flex-col">
-          <Card className="p-6 shadow-lg flex-1 flex flex-col">
+        <div className="w-full lg:w-96 flex flex-col min-h-0">
+          <Card className="p-6 shadow-lg flex-1 flex flex-col overflow-y-auto">
             <div className="space-y-6 flex-1">
               {/* Header */}
               <div className="text-center space-y-2">

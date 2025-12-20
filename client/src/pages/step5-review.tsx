@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { MapContainer, TileLayer, Marker, CircleMarker, useMap } from "react-leaflet";
-import { Icon, LatLngExpression, LatLngBounds } from "leaflet";
+import { Icon, LatLngExpression, LatLngBounds, DivIcon } from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 interface GridPoint {
@@ -25,15 +25,6 @@ interface GridConfig {
   gridSize: number;
 }
 
-const customMarkerIcon = new Icon({
-  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-
 const centerMarkerIcon = new Icon({
   iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png",
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
@@ -42,6 +33,33 @@ const centerMarkerIcon = new Icon({
   popupAnchor: [1, -34],
   shadowSize: [41, 41],
 });
+
+// Create a custom SVG icon for selected grid points with checkmark
+const createCheckmarkIcon = () => {
+  return new DivIcon({
+    html: `
+      <div style="
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        background-color: #22c55e;
+        border: 2px solid #16a34a;
+        border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      ">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
+          <path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    `,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+    popupAnchor: [0, -12],
+    className: "custom-checkmark-icon",
+  });
+};
 
 function calculateGridPoints(
   centerLat: number,
@@ -227,9 +245,9 @@ export default function Step5Review() {
                 </div>
 
                 {/* Grid Points Selection Counter */}
-                <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
                   <p className="text-xs text-muted-foreground">Grid Points Selected</p>
-                  <p className="font-bold text-lg text-blue-600 dark:text-blue-400" data-testid="text-selected-count">
+                  <p className="font-bold text-lg text-green-600 dark:text-green-400" data-testid="text-selected-count">
                     {selectedPointIds.size} / {gridPoints.length}
                   </p>
                 </div>
@@ -311,28 +329,43 @@ export default function Step5Review() {
               {/* Grid points */}
               {gridPoints.map((point) => {
                 const isPointSelected = selectedPointIds.has(point.id);
+                
+                // Only render selected points with green color and checkmark
+                if (!isPointSelected) {
+                  return null;
+                }
+                
                 return (
-                  <CircleMarker
-                    key={point.id}
-                    center={[point.lat, point.lng]}
-                    radius={isPointSelected ? 7 : 5}
-                    fillColor={point.isCenter ? "#ef4444" : isPointSelected ? "#3b82f6" : "#a3a3a3"}
-                    color={point.isCenter ? "#dc2626" : isPointSelected ? "#1d4ed8" : "#737373"}
-                    weight={isPointSelected ? 2 : 1}
-                    opacity={isPointSelected ? 0.9 : 0.5}
-                    fillOpacity={isPointSelected ? 0.8 : 0.4}
-                    eventHandlers={{
-                      click: () => togglePointSelection(point.id),
-                    }}
-                    data-testid={`grid-point-${point.id}`}
-                  />
+                  <div key={point.id}>
+                    {/* Green circle marker for selected point */}
+                    <CircleMarker
+                      center={[point.lat, point.lng]}
+                      radius={8}
+                      fillColor="#22c55e"
+                      color="#16a34a"
+                      weight={2}
+                      opacity={1}
+                      fillOpacity={0.8}
+                      eventHandlers={{
+                        click: () => togglePointSelection(point.id),
+                      }}
+                      data-testid={`grid-point-${point.id}`}
+                    />
+                    
+                    {/* Checkmark icon on top of the circle */}
+                    <Marker
+                      position={[point.lat, point.lng]}
+                      icon={createCheckmarkIcon()}
+                      interactive={false}
+                    />
+                  </div>
                 );
               })}
             </MapContainer>
             
             {/* Map hint overlay */}
             <div className="absolute top-4 left-4 bg-white/90 dark:bg-slate-900/90 px-3 py-2 rounded-lg text-xs text-muted-foreground pointer-events-none">
-              Click grid points to select/deselect
+              Click grid points to deselect
             </div>
           </Card>
         </div>

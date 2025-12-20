@@ -330,34 +330,31 @@ export default function Step5Review() {
               {gridPoints.map((point) => {
                 const isPointSelected = selectedPointIds.has(point.id);
                 
-                // Only render selected points with green color and checkmark
-                if (!isPointSelected) {
-                  return null;
-                }
-                
                 return (
                   <div key={point.id}>
-                    {/* Green circle marker for selected point */}
+                    {/* Circle marker - green for selected, gray for unselected */}
                     <CircleMarker
                       center={[point.lat, point.lng]}
-                      radius={8}
-                      fillColor="#22c55e"
-                      color="#16a34a"
-                      weight={2}
-                      opacity={1}
-                      fillOpacity={0.8}
+                      radius={isPointSelected ? 8 : 6}
+                      fillColor={isPointSelected ? "#22c55e" : "#d1d5db"}
+                      color={isPointSelected ? "#16a34a" : "#9ca3af"}
+                      weight={isPointSelected ? 2 : 1}
+                      opacity={isPointSelected ? 1 : 0.6}
+                      fillOpacity={isPointSelected ? 0.8 : 0.5}
                       eventHandlers={{
                         click: () => togglePointSelection(point.id),
                       }}
                       data-testid={`grid-point-${point.id}`}
                     />
                     
-                    {/* Checkmark icon on top of the circle */}
-                    <Marker
-                      position={[point.lat, point.lng]}
-                      icon={createCheckmarkIcon()}
-                      interactive={false}
-                    />
+                    {/* Checkmark icon only on selected points */}
+                    {isPointSelected && (
+                      <Marker
+                        position={[point.lat, point.lng]}
+                        icon={createCheckmarkIcon()}
+                        interactive={false}
+                      />
+                    )}
                   </div>
                 );
               })}
@@ -365,7 +362,7 @@ export default function Step5Review() {
             
             {/* Map hint overlay */}
             <div className="absolute top-4 left-4 bg-white/90 dark:bg-slate-900/90 px-3 py-2 rounded-lg text-xs text-muted-foreground pointer-events-none">
-              Click grid points to deselect
+              Click grid points to select/deselect
             </div>
           </Card>
         </div>
